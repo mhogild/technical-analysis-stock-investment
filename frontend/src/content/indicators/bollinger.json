@@ -1,0 +1,37 @@
+{
+  "name": "bollinger",
+  "displayName": "Bollinger Bands",
+  "whatItMeasures": "Bollinger Bands measure price volatility by placing bands at standard deviation levels above and below a moving average. The bands widen during high volatility and contract during low volatility. Developed by John Bollinger in the 1980s, they help identify whether prices are relatively high or low and whether a volatility breakout is imminent.",
+  "parameters": [
+    {
+      "name": "Period",
+      "value": "20",
+      "rationale": "The 20-period SMA is the standard middle band. Bollinger himself recommended 20 periods as it represents approximately one trading month and provides a good balance of responsiveness and smoothness."
+    },
+    {
+      "name": "Standard Deviations",
+      "value": "2",
+      "rationale": "Two standard deviations capture approximately 95% of price action within the bands under normal distribution assumptions. This is Bollinger's recommended setting."
+    }
+  ],
+  "howToRead": [
+    "Price touching or exceeding the upper band suggests the asset may be overbought relative to recent volatility.",
+    "Price touching or falling below the lower band suggests the asset may be oversold relative to recent volatility.",
+    "A 'Bollinger Squeeze' (bands narrowing) often precedes a significant breakout move in either direction.",
+    "Price consistently riding the upper band indicates a strong uptrend; riding the lower band indicates a strong downtrend.",
+    "The middle band (20-day SMA) acts as dynamic support in uptrends and resistance in downtrends."
+  ],
+  "signalRules": {
+    "buy": "Price touches or closes below the lower Bollinger Band, suggesting an oversold condition with a potential bounce.",
+    "sell": "Price touches or closes above the upper Bollinger Band, suggesting an overbought condition with a potential pullback.",
+    "neutral": "Price is between the bands and near the middle band (20-day SMA), indicating no extreme condition."
+  },
+  "limitations": [
+    "Bollinger Bands are not standalone buy/sell signals — price can 'walk the band' in strong trends for extended periods.",
+    "The bands assume a normal distribution of returns, which does not hold during fat-tail events (crashes, squeezes).",
+    "A Bollinger Squeeze signals that volatility is coming but does not indicate the direction of the breakout.",
+    "In strongly trending markets, mean-reversion trades off the bands will fail repeatedly.",
+    "The standard 20/2 parameters may not be optimal for all timeframes or asset types."
+  ],
+  "evidence": "In the 100-year DJIA backtest by Liberatedstocktrader.com, Bollinger Band-based strategies proved reliable for identifying mean-reversion opportunities and volatility breakouts. The bands performed best when combined with momentum indicators like RSI to confirm overbought/oversold readings. Their primary value is in providing volatility context rather than directional signals."
+}

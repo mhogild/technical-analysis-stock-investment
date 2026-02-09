@@ -1,0 +1,36 @@
+{
+  "name": "ema",
+  "displayName": "Exponential Moving Average (EMA 12/26)",
+  "whatItMeasures": "The EMA gives more weight to recent prices, making it more responsive to new information than the SMA. The 12-day and 26-day EMAs are the standard pair used in trend-following strategies and form the basis of the MACD indicator. A bullish crossover occurs when the 12-day EMA crosses above the 26-day EMA, and a bearish crossover when it crosses below.",
+  "parameters": [
+    {
+      "name": "Short Period",
+      "value": "12",
+      "rationale": "The 12-day EMA represents roughly two trading weeks and captures short-term momentum shifts. It is the standard short EMA used in the MACD calculation."
+    },
+    {
+      "name": "Long Period",
+      "value": "26",
+      "rationale": "The 26-day EMA represents roughly one trading month and provides a baseline for intermediate-term trend direction. It is the standard long EMA used in the MACD calculation."
+    }
+  ],
+  "howToRead": [
+    "When the 12-day EMA is above the 26-day EMA, the short-term trend is bullish.",
+    "When the 12-day EMA crosses below the 26-day EMA, momentum is shifting bearish.",
+    "Price consistently above both EMAs suggests a strong uptrend.",
+    "The gap between the two EMAs indicates the strength of the current momentum — a widening gap means accelerating trend.",
+    "EMA crossovers react faster than SMA crossovers, giving earlier signals but also more false signals in choppy markets."
+  ],
+  "signalRules": {
+    "buy": "12-day EMA crosses above 26-day EMA (bullish crossover).",
+    "sell": "12-day EMA crosses below 26-day EMA (bearish crossover).",
+    "neutral": "EMAs are converging or intertwined with no clear directional crossover."
+  },
+  "limitations": [
+    "Faster response to price changes also means more false signals in sideways markets.",
+    "EMA crossovers are still lagging indicators — they confirm rather than predict.",
+    "In volatile markets, frequent crossovers can lead to whipsaw losses.",
+    "The exponential weighting can overreact to sudden price spikes that quickly reverse."
+  ],
+  "evidence": "In a 100-year backtest of the DJIA conducted by Liberatedstocktrader.com, the EMA 12/26 crossover strategy was identified as the highest-performing moving average configuration. Its responsiveness to recent price action provided an edge over the standard SMA in capturing trend changes earlier, resulting in superior risk-adjusted returns over the full century of data."
+}

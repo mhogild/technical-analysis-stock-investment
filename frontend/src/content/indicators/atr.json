@@ -1,0 +1,33 @@
+{
+  "name": "atr",
+  "displayName": "Average True Range (ATR)",
+  "whatItMeasures": "The ATR measures market volatility by calculating the average of the true range over a set period. The true range is the greatest of: current high minus current low, absolute value of current high minus previous close, or absolute value of current low minus previous close. Developed by J. Welles Wilder Jr. in 1978, ATR tells you how much an asset typically moves in a given period — it does not indicate direction.",
+  "parameters": [
+    {
+      "name": "Period",
+      "value": "14",
+      "rationale": "Wilder's original 14-period setting is the universal standard. It captures approximately three trading weeks of volatility data, providing a reliable baseline for typical price movement."
+    }
+  ],
+  "howToRead": [
+    "A high ATR means the asset is experiencing high volatility — price is moving significantly each period.",
+    "A low ATR means the asset is in a low-volatility environment — price movements are relatively small.",
+    "Rising ATR often accompanies the start of a new trend or a breakout from consolidation.",
+    "Falling ATR often indicates a consolidation phase or trend exhaustion.",
+    "ATR can be used to set stop-loss distances: a common approach is placing stops 1.5x to 2x ATR from the entry price.",
+    "ATR values are in the same unit as the asset price (dollars for stocks), so they must be compared relatively, not absolutely."
+  ],
+  "signalRules": {
+    "buy": "ATR is not a buy/sell indicator. It provides volatility context: use it to size positions and set stop-losses appropriately.",
+    "sell": "ATR is not a buy/sell indicator. Spiking ATR during a downtrend indicates increased fear and wider stops may be needed.",
+    "neutral": "ATR is always contextual. Stable ATR suggests steady market conditions; changes in ATR signal shifts in volatility regime."
+  },
+  "limitations": [
+    "ATR does not indicate price direction — it only measures the magnitude of price movement.",
+    "ATR values are absolute and cannot be compared across different assets without normalization (use ATR as a percentage of price).",
+    "ATR is backward-looking and may not predict future volatility shifts, especially around earnings or events.",
+    "In gap-heavy markets (post-earnings, post-news), ATR can spike temporarily and give a distorted view of normal volatility.",
+    "ATR alone does not generate trading signals — it is purely a risk management and position-sizing tool."
+  ],
+  "evidence": "ATR is universally used in professional trading for position sizing and risk management. Wilder created it specifically as a volatility measure for his trading systems. Research consistently shows that ATR-based stop-losses outperform fixed-percentage stops because they adapt to current market conditions. Strategies that use ATR for position sizing (risking a fixed percentage of capital per ATR unit) demonstrate more consistent returns and better drawdown management than fixed-lot approaches."
+}

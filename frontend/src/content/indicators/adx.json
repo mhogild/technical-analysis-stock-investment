@@ -1,0 +1,33 @@
+{
+  "name": "adx",
+  "displayName": "Average Directional Index (ADX)",
+  "whatItMeasures": "The ADX measures the strength of a trend regardless of its direction. It does not indicate whether the trend is up or down — only how strong or weak the trend is. Developed by J. Welles Wilder Jr. in 1978 (the same creator as RSI and ATR), it is derived from the directional movement indicators (+DI and -DI). ADX oscillates between 0 and 100.",
+  "parameters": [
+    {
+      "name": "Period",
+      "value": "14",
+      "rationale": "Wilder's original 14-period setting remains the standard. It provides a reliable measure of trend strength over approximately three trading weeks."
+    }
+  ],
+  "howToRead": [
+    "ADX above 25 indicates a strong trend is in place — trend-following strategies are appropriate.",
+    "ADX below 20 indicates a weak or absent trend — range-bound or mean-reversion strategies may work better.",
+    "ADX between 20 and 25 is a gray zone — the trend may be forming or fading.",
+    "Rising ADX means the trend (in either direction) is strengthening.",
+    "Falling ADX means the trend is weakening, regardless of price direction.",
+    "ADX does NOT tell you the direction of the trend — use +DI/-DI or other indicators for that."
+  ],
+  "signalRules": {
+    "buy": "ADX is not a buy/sell indicator. It is used as a confidence filter. When ADX > 25, buy/sell signals from other indicators carry higher confidence.",
+    "sell": "ADX is not a buy/sell indicator. When ADX < 20, trend-following signals from other indicators are less reliable.",
+    "neutral": "ADX between 20 and 25 — trend strength is ambiguous; exercise caution with directional signals."
+  },
+  "limitations": [
+    "ADX is direction-blind — a rising ADX during a crash is still 'strong trend,' which can be misleading without context.",
+    "ADX is a lagging indicator — it confirms trend strength after the trend is already underway.",
+    "The indicator can remain at low levels during extended consolidation periods, providing no actionable information.",
+    "ADX does not indicate when a strong trend will end — it only measures current strength.",
+    "In rapidly changing markets, the 14-period lookback may be too slow to catch sudden shifts in trend strength."
+  ],
+  "evidence": "ADX is widely used in academic and professional trading research as a trend strength filter. Studies consistently show that trend-following indicators (SMA crossovers, MACD, EMA crossovers) perform significantly better when ADX is above 25 and significantly worse when ADX is below 20. Its primary value is not as a standalone signal but as a regime filter that tells you whether to trust trend-following or mean-reversion strategies in current market conditions."
+}

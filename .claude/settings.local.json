@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.blog)",
+      "WebFetch(domain:github.com)",
+      "Bash(python:*)",
+      "Bash(set PYTHONIOENCODING=utf-8)",
+      "Bash(PYTHONUTF8=1 python:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npx:*)",
+      "Bash(for dir in backend backend/routers backend/services backend/models backend/cache backend/scheduler backend/tests)",
+      "Bash(do touch \"c:\\\\Users\\\\magnu\\\\Documents\\\\GitHub\\\\technical-analysis-stock-investment$dir\\\\__init__.py\")",
+      "Bash(done)",
+      "Bash(do touch \"$dir/__init__.py\")",
+      "Bash(npm install)",
+      "Bash(pip install:*)",
+      "Bash(ls -R \"c:\\\\Users\\\\magnu\\\\Documents\\\\GitHub\\\\technical-analysis-stock-investment\\\\backend\\\\services\"\" \"c:UsersmagnuDocumentsGitHubtechnical-analysis-stock-investmentbackendrouters\"\" \"c:\\\\Users\\\\magnu\\\\Documents\\\\GitHub\\\\technical-analysis-stock-investment\\\\frontend\\\\src\\\\components\"\" 2>/dev/null || dir /s /b \"c:UsersmagnuDocumentsGitHubtechnical-analysis-stock-investmentbackendservices\" \"c:UsersmagnuDocumentsGitHubtechnical-analysis-stock-investmentbackendrouters\" \"c:UsersmagnuDocumentsGitHubtechnical-analysis-stock-investmentfrontendsrccomponents \")",
+      "Bash(powershell -Command \"for \\($i=25; $i -le 47; $i++\\) { $t = ''T'' + $i.ToString\\(''D3''\\); \\(Get-Content ''spec/tasks.md''\\) -replace \\(''- \\\\[ \\\\] \\\\['' + $t + ''\\\\]''\\), \\(''- [x] ['' + $t + '']''\\) | Set-Content ''spec/tasks.md'' }\")",
+      "Bash(powershell -Command \"$content = Get-Content ''spec/tasks.md'' -Raw; for \\($i=25; $i -le 47; $i++\\) { $t = ''T'' + $i.ToString\\(''D3''\\); $content = $content -replace [regex]::Escape\\(''- [ ] ['' + $t + '']''\\), \\(''- [x] ['' + $t + '']''\\) }; Set-Content ''spec/tasks.md'' -Value $content -NoNewline\")",
+      "Bash(uvicorn:*)",
+      "Bash(timeout:*)",
+      "Bash(npm run dev:*)",
+      "Bash(start http://localhost:3000)",
+      "Bash(curl:*)",
+      "Bash(start:*)",
+      "Bash(del \"c:\\\\Users\\\\magnu\\\\Documents\\\\GitHub\\\\technical-analysis-stock-investment\\\\backend\\\\cache\\\\stock_data.db\")",
+      "Bash(dir:*)",
+      "Bash(taskkill:*)",
+      "Bash(findstr:*)"
+    ]
+  }
+}

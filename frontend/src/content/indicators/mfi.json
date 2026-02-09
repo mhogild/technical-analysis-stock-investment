@@ -1,0 +1,32 @@
+{
+  "name": "mfi",
+  "displayName": "Money Flow Index (MFI)",
+  "whatItMeasures": "The Money Flow Index is a volume-weighted version of RSI that measures buying and selling pressure by incorporating both price and volume data. It oscillates between 0 and 100. Often called the 'volume-weighted RSI,' it provides a more complete picture of money flowing into and out of an asset than price-only oscillators.",
+  "parameters": [
+    {
+      "name": "Period",
+      "value": "14",
+      "rationale": "The 14-period lookback mirrors the standard RSI setting and provides a balanced view of money flow over roughly three trading weeks."
+    }
+  ],
+  "howToRead": [
+    "MFI below 20 indicates the asset is oversold with heavy selling volume — potential capitulation point.",
+    "MFI above 80 indicates the asset is overbought with heavy buying volume — potential exhaustion point.",
+    "MFI divergence from price (price rises but MFI falls) signals weakening buying pressure and a possible reversal.",
+    "Rising MFI with rising price confirms that the advance is supported by volume (healthy trend).",
+    "Falling MFI with falling price confirms that the decline has strong participation (likely to continue)."
+  ],
+  "signalRules": {
+    "buy": "MFI crosses below 20 (oversold with high selling volume), especially when followed by a turn back above 20.",
+    "sell": "MFI crosses above 80 (overbought with high buying volume), especially when followed by a turn back below 80.",
+    "neutral": "MFI between 20 and 80 with no divergence or extreme reading."
+  },
+  "limitations": [
+    "MFI requires reliable volume data, which may be less meaningful for thinly traded assets or some ETFs.",
+    "Like RSI, MFI can remain at extreme levels during strong trends, generating premature reversal signals.",
+    "Volume data quality varies across exchanges and data providers, affecting MFI accuracy.",
+    "MFI is most effective in range-bound markets; in strong trends, it frequently flags false overbought/oversold conditions.",
+    "The indicator is less useful for assets with manipulated or thin volume profiles."
+  ],
+  "evidence": "Backtesting on SPY by Liberatedstocktrader.com showed MFI achieving a 71% win rate while only being invested approximately 35% of the time. This means MFI-based strategies spend most of their time in cash, which significantly reduces drawdowns and market exposure risk. The trade-off is missing portions of sustained rallies, but the capital efficiency (returns relative to time invested) is notably strong."
+}

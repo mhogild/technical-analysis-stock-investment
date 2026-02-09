@@ -1,0 +1,42 @@
+{
+  "name": "macd",
+  "displayName": "Moving Average Convergence Divergence (MACD)",
+  "whatItMeasures": "The MACD measures the relationship between two exponential moving averages to identify changes in trend momentum, direction, and strength. It consists of the MACD line (difference between 12-day and 26-day EMA), the signal line (9-day EMA of the MACD line), and the histogram (difference between the two). Developed by Gerald Appel in the late 1970s.",
+  "parameters": [
+    {
+      "name": "Fast EMA",
+      "value": "12",
+      "rationale": "The 12-day EMA captures short-term price momentum. This is the original value specified by Appel and remains the universal standard."
+    },
+    {
+      "name": "Slow EMA",
+      "value": "26",
+      "rationale": "The 26-day EMA represents the intermediate-term trend baseline. The 12/26 combination has been validated across decades of market data."
+    },
+    {
+      "name": "Signal Line",
+      "value": "9",
+      "rationale": "The 9-day EMA of the MACD line smooths out noise and provides a trigger line for crossover signals."
+    }
+  ],
+  "howToRead": [
+    "When the MACD line crosses above the signal line, it is a bullish signal (buying momentum is increasing).",
+    "When the MACD line crosses below the signal line, it is a bearish signal (selling momentum is increasing).",
+    "The histogram shows the distance between the MACD and signal lines — growing bars mean accelerating momentum.",
+    "When both MACD and signal line are above zero, the overall trend is bullish; below zero, bearish.",
+    "Divergence between MACD and price action (price makes new high but MACD does not) can foreshadow reversals."
+  ],
+  "signalRules": {
+    "buy": "MACD line crosses above the signal line (bullish crossover), especially when occurring below the zero line.",
+    "sell": "MACD line crosses below the signal line (bearish crossover), especially when occurring above the zero line.",
+    "neutral": "MACD and signal line are intertwined near the zero line with no clear crossover."
+  },
+  "limitations": [
+    "MACD is a lagging indicator — crossovers occur after the move has already begun.",
+    "In sideways or choppy markets, MACD generates frequent false crossover signals.",
+    "MACD does not indicate overbought/oversold conditions — it has no bounded range.",
+    "The default parameters may not suit all timeframes or asset classes; shorter-term traders sometimes adjust them.",
+    "MACD signals should be confirmed with other indicators (RSI, volume, trend filters) for higher reliability."
+  ],
+  "evidence": "MACD is one of the most widely validated technical indicators in financial literature. The signal-line crossover strategy has been extensively backtested across multiple markets and timeframes. While standalone MACD trading produces mixed results in range-bound markets, it is consistently effective as a trend confirmation tool. Its strength is in identifying the direction and acceleration of trends rather than as a standalone entry/exit system."
+}

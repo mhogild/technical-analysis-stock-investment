@@ -1,0 +1,36 @@
+{
+  "name": "sma",
+  "displayName": "Simple Moving Average (SMA 50/200)",
+  "whatItMeasures": "The SMA smooths out price data by calculating the average closing price over a set number of periods. The 50-day and 200-day SMAs are the most widely followed. When the shorter SMA crosses above the longer one (Golden Cross), it signals a potential uptrend; when it crosses below (Death Cross), it signals a potential downtrend. The 10-month SMA (roughly equivalent to the 200-day) is used as a long-term trend filter for monthly rebalancing strategies.",
+  "parameters": [
+    {
+      "name": "Short Period",
+      "value": "50",
+      "rationale": "The 50-day SMA captures the intermediate-term trend and is the most commonly referenced short-term moving average by institutional traders."
+    },
+    {
+      "name": "Long Period",
+      "value": "200",
+      "rationale": "The 200-day SMA is the standard benchmark for long-term trend direction, widely watched across all market participants."
+    }
+  ],
+  "howToRead": [
+    "Price above the 200-day SMA indicates a long-term uptrend; below indicates a downtrend.",
+    "A Golden Cross (50-day crosses above 200-day) is a bullish signal suggesting momentum is shifting upward.",
+    "A Death Cross (50-day crosses below 200-day) is a bearish signal suggesting momentum is shifting downward.",
+    "The 10-month SMA rule: invest when the monthly close is above the 10-month SMA, move to cash or bonds when below.",
+    "SMA crossovers are lagging signals — they confirm trends rather than predict them."
+  ],
+  "signalRules": {
+    "buy": "Golden Cross: 50-day SMA crosses above 200-day SMA, or price closes above 200-day SMA.",
+    "sell": "Death Cross: 50-day SMA crosses below 200-day SMA, or price closes below 200-day SMA.",
+    "neutral": "Price oscillating around the 200-day SMA with no clear crossover; 50-day and 200-day are converging."
+  },
+  "limitations": [
+    "SMA crossovers are lagging indicators and can generate signals well after a trend has started.",
+    "In sideways or choppy markets, crossovers produce frequent whipsaws (false signals).",
+    "The Golden Cross and Death Cross are slow-moving — they work best in sustained trends, not short-term trading.",
+    "Equal weighting of all periods means the SMA reacts slowly to recent price changes compared to the EMA."
+  ],
+  "evidence": "Meb Faber's research on the 10-month SMA timing rule (equivalent to the 200-day SMA) shows it delivers returns similar to buy-and-hold over long periods, but cuts maximum drawdown roughly in half — from approximately 55% to around 25%. The strategy's value is primarily in risk reduction rather than return enhancement. Golden Cross/Death Cross signals have been studied extensively and show reliability in trending markets but underperform in range-bound conditions."
+}

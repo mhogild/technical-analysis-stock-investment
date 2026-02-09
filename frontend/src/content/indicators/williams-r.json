@@ -1,0 +1,32 @@
+{
+  "name": "williams-r",
+  "displayName": "Williams %R",
+  "whatItMeasures": "Williams %R is a momentum oscillator that measures the current closing price relative to the high-low range over a lookback period. It oscillates between 0 and -100. Developed by Larry Williams, it is essentially an inverted Stochastic Oscillator and is particularly effective at identifying overbought and oversold conditions with precise timing.",
+  "parameters": [
+    {
+      "name": "Period",
+      "value": "14",
+      "rationale": "The 14-period lookback is the standard setting, balancing sensitivity to recent price action with enough data to avoid excessive noise. This was Larry Williams' original recommendation."
+    }
+  ],
+  "howToRead": [
+    "Williams %R below -80 indicates the asset is oversold — the current price is near the bottom of its recent range.",
+    "Williams %R above -20 indicates the asset is overbought — the current price is near the top of its recent range.",
+    "A move from below -80 back above -80 is a potential buy signal (oversold recovery).",
+    "A move from above -20 back below -20 is a potential sell signal (overbought reversal).",
+    "The indicator ranges from 0 (highest high) to -100 (lowest low); readings around -50 are neutral."
+  ],
+  "signalRules": {
+    "buy": "Williams %R crosses below -80 (oversold zone), especially when it then turns back above -80.",
+    "sell": "Williams %R crosses above -20 (overbought zone), especially when it then turns back below -20.",
+    "neutral": "Williams %R between -80 and -20 with no extreme reading or directional shift."
+  },
+  "limitations": [
+    "Like RSI, Williams %R can remain in overbought or oversold territory for extended periods during strong trends.",
+    "The indicator is very sensitive to the lookback period — small changes can significantly alter readings.",
+    "Williams %R does not account for volume or broader market context.",
+    "In strongly trending markets, counter-trend signals from Williams %R will generate frequent false signals.",
+    "Best used as a confirmation tool alongside trend indicators rather than as a standalone system."
+  ],
+  "evidence": "Backtesting on the S&P 500 by Liberatedstocktrader.com showed Williams %R achieving an 81% win rate with an 11.9% compound annual growth rate (CAGR). This makes it one of the highest-performing single oscillator indicators tested. Its effectiveness stems from its ability to precisely identify exhaustion points in short-term price swings within the context of broader trends."
+}

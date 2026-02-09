@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-02-04T19:16:57.301447",
+  "backend_url": "http://localhost:8000",
+  "total_tests": 29,
+  "passed": 17,
+  "failed": 12,
+  "success_rate": 58.620689655172406,
+  "stocks_tested": [
+    "AAPL",
+    "MSFT",
+    "JPM",
+    "NVDA",
+    "GME"
+  ],
+  "stock_signals": {
+    "AAPL": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "MSFT": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "JPM": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "NVDA": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "GME": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    }
+  },
+  "failed_tests": [
+    {
+      "name": "Search 'Apple'",
+      "message": "AAPL not in results"
+    },
+    {
+      "name": "Search 'Microsoft'",
+      "message": "MSFT not in results"
+    },
+    {
+      "name": "AAPL Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "AAPL Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "MSFT Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "MSFT Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "JPM Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "JPM Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "NVDA Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "NVDA Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "GME Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "GME Signal Logic",
+      "message": "Missing indicator or signal data"
+    }
+  ]
+}

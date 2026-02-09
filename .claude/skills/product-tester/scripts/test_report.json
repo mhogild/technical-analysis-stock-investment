@@ -1,0 +1,370 @@
+{
+  "timestamp": "2026-02-04T19:14:46.617325",
+  "backend_url": "http://localhost:8000",
+  "total_tests": 124,
+  "passed": 77,
+  "failed": 47,
+  "success_rate": 62.096774193548384,
+  "stocks_tested": [
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "NVDA",
+    "JPM",
+    "JNJ",
+    "PG",
+    "XOM",
+    "KO",
+    "NOVO-B.CO",
+    "ASML.AS",
+    "SAP.DE",
+    "SHEL.L",
+    "MC.PA",
+    "7203.T",
+    "9988.HK",
+    "CRWD",
+    "ABNB",
+    "PANW",
+    "GME",
+    "PLTR",
+    "T",
+    "RIVN"
+  ],
+  "stock_signals": {
+    "AAPL": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "MSFT": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "GOOGL": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "AMZN": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "NVDA": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "JPM": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "JNJ": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "PG": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "XOM": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "KO": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "NOVO-B.CO": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "ASML.AS": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "SAP.DE": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "SHEL.L": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "MC.PA": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "7203.T": {
+      "signal": "Buy",
+      "score": 0.383,
+      "adx_confidence": "high",
+      "monthly_trend": "Invested"
+    },
+    "9988.HK": {
+      "signal": "Hold",
+      "score": -0.033,
+      "adx_confidence": "moderate",
+      "monthly_trend": "Invested"
+    },
+    "CRWD": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "ABNB": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "PANW": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "GME": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "PLTR": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "T": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    },
+    "RIVN": {
+      "signal": null,
+      "score": null,
+      "adx_confidence": null,
+      "monthly_trend": null
+    }
+  },
+  "failed_tests": [
+    {
+      "name": "Search 'Apple'",
+      "message": "AAPL not in results"
+    },
+    {
+      "name": "Search 'Microsoft'",
+      "message": "MSFT not in results"
+    },
+    {
+      "name": "AAPL Indicators",
+      "message": "Status: 500"
+    },
+    {
+      "name": "AAPL Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "AAPL Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "MSFT Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "MSFT Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "GOOGL Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "GOOGL Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "AMZN Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "AMZN Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "NVDA Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "NVDA Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "JPM Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "JPM Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "JNJ Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "JNJ Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "PG Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "PG Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "XOM Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "XOM Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "KO Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "KO Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "NOVO-B.CO Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "NOVO-B.CO Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "ASML.AS Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "ASML.AS Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "SAP.DE Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "SAP.DE Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "SHEL.L Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "SHEL.L Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "MC.PA Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "MC.PA Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "CRWD Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "CRWD Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "ABNB Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "ABNB Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "PANW Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "PANW Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "GME Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "GME Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "PLTR Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "PLTR Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "T Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "T Signal Logic",
+      "message": "Missing indicator or signal data"
+    },
+    {
+      "name": "RIVN Signal",
+      "message": "Status: 500"
+    },
+    {
+      "name": "RIVN Signal Logic",
+      "message": "Missing indicator or signal data"
+    }
+  ]
+}

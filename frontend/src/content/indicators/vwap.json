@@ -1,0 +1,32 @@
+{
+  "name": "vwap",
+  "displayName": "Volume Weighted Average Price (VWAP)",
+  "whatItMeasures": "VWAP calculates the average price of an asset weighted by trading volume throughout a session. It represents the 'fair value' price at which most volume has traded. Institutional traders use VWAP as a benchmark — buying below VWAP suggests getting a favorable price relative to the day's average, while selling above VWAP suggests getting a premium.",
+  "parameters": [
+    {
+      "name": "Session",
+      "value": "Daily",
+      "rationale": "VWAP resets each trading session. The daily session is the standard timeframe used by institutional traders as their execution benchmark."
+    }
+  ],
+  "howToRead": [
+    "Price above VWAP means the asset is trading above its volume-weighted average — bullish intraday bias.",
+    "Price below VWAP means the asset is trading below its volume-weighted average — bearish intraday bias.",
+    "VWAP acts as dynamic intraday support (in uptrends) or resistance (in downtrends).",
+    "Institutional traders often use VWAP as a benchmark: buying below VWAP and selling above VWAP is considered good execution.",
+    "VWAP is most relevant during the trading session — it resets daily and has no overnight meaning."
+  ],
+  "signalRules": {
+    "buy": "Price is below VWAP in a broader uptrend, suggesting an intraday buying opportunity at a discount to average volume-weighted price.",
+    "sell": "Price is above VWAP in a broader downtrend, suggesting an intraday selling opportunity at a premium to average volume-weighted price.",
+    "neutral": "Price is oscillating around VWAP with no clear directional bias."
+  },
+  "limitations": [
+    "VWAP is a session-based indicator and resets daily — it has no multi-day trend significance.",
+    "It is most useful for intraday traders and institutional execution; less relevant for swing or position traders.",
+    "VWAP becomes less meaningful as the trading day progresses because it anchors to the full session's data.",
+    "In low-volume or after-hours trading, VWAP is unreliable due to insufficient volume participation.",
+    "VWAP does not predict future price direction — it only describes the current session's volume-weighted average."
+  ],
+  "evidence": "VWAP is the primary benchmark used by institutional traders globally for evaluating execution quality. While it does not have traditional backtested buy/sell evidence like oscillator indicators, it is included here as optional intraday context. Studies of institutional order flow consistently show that VWAP acts as an intraday magnet for price and that deviations from VWAP tend to revert, making it useful for intraday mean-reversion assessments."
+}

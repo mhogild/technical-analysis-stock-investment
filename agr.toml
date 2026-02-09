@@ -1,0 +1,4 @@
+dependencies = [
+    {handle = "anthropics/skills/skill-creator", type = "skill"},
+    {handle = "anthropics/skills/frontend-design", type = "skill"},
+]

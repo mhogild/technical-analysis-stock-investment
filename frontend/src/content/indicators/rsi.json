@@ -1,0 +1,31 @@
+{
+  "name": "rsi",
+  "displayName": "Relative Strength Index (RSI)",
+  "whatItMeasures": "The RSI measures the speed and magnitude of recent price changes to evaluate whether an asset is overbought or oversold. It oscillates between 0 and 100. Developed by J. Welles Wilder Jr. in 1978, it compares the average gain to the average loss over a lookback period, providing a normalized momentum reading.",
+  "parameters": [
+    {
+      "name": "Period",
+      "value": "14",
+      "rationale": "Wilder's original recommendation of 14 periods remains the standard. It balances responsiveness with smoothness — shorter periods create more noise, longer periods miss reversals."
+    }
+  ],
+  "howToRead": [
+    "RSI below 30 indicates the asset is oversold — selling pressure may be exhausted and a bounce is possible.",
+    "RSI above 70 indicates the asset is overbought — buying pressure may be exhausted and a pullback is possible.",
+    "RSI around 50 is neutral and suggests no strong momentum in either direction.",
+    "Divergence between RSI and price (price makes new high but RSI does not) can signal an impending reversal.",
+    "In strong trends, RSI can remain overbought or oversold for extended periods — do not blindly counter-trade."
+  ],
+  "signalRules": {
+    "buy": "RSI crosses below 30 (oversold), especially when followed by a turn back above 30.",
+    "sell": "RSI crosses above 70 (overbought), especially when followed by a turn back below 70.",
+    "neutral": "RSI between 30 and 70 with no divergence or extreme reading."
+  },
+  "limitations": [
+    "In strong trending markets, RSI can remain overbought (>70) or oversold (<30) for long periods, generating premature exit signals.",
+    "RSI is a single-timeframe indicator and should be confirmed with trend indicators like SMA or MACD.",
+    "The 30/70 thresholds are guidelines, not precise reversal points — some practitioners use 20/80 for stronger signals.",
+    "RSI does not account for volume, which can provide important confirmation of price moves."
+  ],
+  "evidence": "In the 100-year DJIA study by Liberatedstocktrader.com, RSI-based strategies consistently achieved high win rates. The RSI 14 with standard 30/70 thresholds showed reliable mean-reversion characteristics, particularly when combined with trend-following indicators as filters. Its strength lies in identifying exhaustion points in counter-trend moves."
+}

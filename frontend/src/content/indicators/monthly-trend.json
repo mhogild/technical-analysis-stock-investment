@@ -1,0 +1,32 @@
+{
+  "name": "monthly-trend",
+  "displayName": "10-Month SMA Trend Rule (Meb Faber)",
+  "whatItMeasures": "The 10-Month SMA Rule is a simple timing strategy that compares an asset's monthly closing price to its 10-month simple moving average. When the monthly close is above the 10-month SMA, the asset is in an uptrend and you remain invested. When the monthly close is below the 10-month SMA, the asset is in a downtrend and you move to cash or bonds. This is a long-term trend filter designed for monthly rebalancing.",
+  "parameters": [
+    {
+      "name": "Period",
+      "value": "10 months",
+      "rationale": "The 10-month SMA (approximately equivalent to the 200-day SMA) has been extensively researched by Meb Faber and others. It captures the long-term trend while filtering out short-term noise. Monthly evaluation reduces transaction costs and whipsaws."
+    }
+  ],
+  "howToRead": [
+    "Monthly close above the 10-month SMA: the long-term trend is up — remain invested in equities.",
+    "Monthly close below the 10-month SMA: the long-term trend is down — move to cash or bonds for capital preservation.",
+    "This is a binary system evaluated once per month at the close — no intra-month decisions needed.",
+    "The rule's value is primarily in avoiding the worst drawdowns, not in generating excess returns.",
+    "During whipsaw periods (price oscillating around the SMA), expect occasional false signals — this is the cost of downside protection."
+  ],
+  "signalRules": {
+    "buy": "Monthly closing price is above the 10-month SMA — stay invested or re-enter the market.",
+    "sell": "Monthly closing price is below the 10-month SMA — exit to cash or bonds until the trend reverses.",
+    "neutral": "Price is very close to the 10-month SMA — the trend is ambiguous; maintain current positioning and re-evaluate next month."
+  },
+  "limitations": [
+    "The rule generates whipsaw signals during extended sideways markets, leading to small repeated losses.",
+    "Monthly evaluation means you can lose up to one month of downside before the signal triggers.",
+    "In strong V-shaped recoveries, the rule can keep you out of the market during the initial bounce.",
+    "Tax implications of moving between equities and cash can reduce after-tax returns.",
+    "The rule is designed for broad market indices — it may be less effective for individual stocks with higher idiosyncratic volatility."
+  ],
+  "evidence": "Meb Faber's research, published in 'A Quantitative Approach to Tactical Asset Allocation' (2006, updated periodically), demonstrates that the 10-month SMA rule applied to the S&P 500 reduces maximum drawdown from approximately 55% (buy-and-hold) to approximately 13%, while delivering comparable long-term returns. The strategy was invested in equities roughly 70% of the time, avoiding the worst bear markets. This dramatic drawdown reduction — from 55% to 13% — is the rule's primary value: making equity investing psychologically and financially survivable for long-term investors."
+}
