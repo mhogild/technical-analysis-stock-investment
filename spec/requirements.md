@@ -1,8 +1,9 @@
 # Feature Specification: Technical Analysis Stock Investment Platform
 
 **Created**: 2026-02-01
+**Updated**: 2026-02-09
 **Status**: Draft
-**Input**: User description: "Stock analysis platform as a webpage focused on technical analysis for large cap companies. Analysis includes Moving Averages, RSI, MACD, and more. All stocks available across multiple global exchanges with visualization and clear buy/sell signals. Individual indicator signals plus a consolidated recommendation. Description of all parameters in use, key financial insights. Portfolio tracking with watchlists. Target user: passive monthly investor who rarely sells and doesn't follow markets closely. Insights should be easy to understand but actionable."
+**Input**: User description: "Stock analysis platform as a webpage focused on technical analysis for large cap companies. Analysis includes Moving Averages, RSI, MACD, and more. All stocks AND ETFs available across multiple global exchanges with visualization and clear buy/sell signals. Individual indicator signals plus a consolidated recommendation. Description of all parameters in use, key financial insights. Portfolio tracking with watchlists. Stock recommendations container showing top 100 buy signals sorted by strength with industry filtering. Secure account management. Target user: passive monthly investor who rarely sells and doesn't follow markets closely. Insights should be easy to understand but actionable."
 
 ## User Scenarios & Testing
 
@@ -159,6 +160,79 @@ The user receives notifications (email and/or in-app) when significant signal ch
 
 ---
 
+### User Story 10 - View Stock Recommendations with Buy Signals (Priority: P1)
+
+The user visits a dedicated recommendations page that displays the top 100 stocks and ETFs with the strongest BUY signals. The list is numbered 1-100, sorted by signal strength (strongest buy signals first). Each entry shows the stock/ETF name, ticker, exchange, current consolidated signal, and signal score. The user can filter this list by industry/sector (e.g., AI/Technology, Healthcare, Financials, Energy, Consumer, etc.) to focus on sectors they're interested in.
+
+**Why this priority**: This is a key differentiator for passive investors who don't know which stocks to research. Instead of requiring users to already know what stocks they want, this proactively surfaces the best buying opportunities across the market, filtered by their interests.
+
+**Independent Test**: Navigate to recommendations page and verify 100 stocks/ETFs are displayed, numbered, sorted by signal strength, with working industry filters.
+
+**Acceptance Scenarios**:
+
+1. **Given** the user navigates to the Recommendations page, **When** the page loads, **Then** they see a numbered list (1-100) of stocks and ETFs with Buy or Strong Buy signals, sorted by signal strength (strongest first).
+2. **Given** the user views the recommendations list, **When** they see each entry, **Then** it displays: rank number, company/ETF name, ticker symbol, exchange, industry/sector tag, current consolidated signal badge (Buy/Strong Buy), and the numeric signal score.
+3. **Given** the user wants to filter by industry, **When** they select a filter (e.g., "AI & Technology"), **Then** the list updates to show only stocks/ETFs in that sector, re-ranked 1-N within that filter.
+4. **Given** there are fewer than 100 stocks with Buy signals in a filtered sector, **When** the filter is applied, **Then** the list shows all available stocks (e.g., 1-47) without padding or empty entries.
+5. **Given** the user clicks on any stock in the recommendations list, **When** they click, **Then** they navigate to the stock detail page for that symbol.
+6. **Given** the market data has been updated, **When** the user refreshes the recommendations page, **Then** the rankings reflect the latest signal calculations from end-of-day data.
+
+---
+
+### User Story 11 - Filter Stocks and ETFs by Industry/Sector (Priority: P1)
+
+The user can filter stocks and ETFs across the platform (search results, recommendations, portfolio analysis) by industry or sector. Available filters include Technology/AI, Healthcare/Pharmaceuticals, Financials, Energy, Consumer Discretionary, Consumer Staples, Industrials, Materials, Utilities, Real Estate, Communications, and ETF categories (Broad Market, Sector, Bond, International, Commodity, Thematic).
+
+**Why this priority**: Passive investors often have preferences for specific industries (e.g., avoiding oil & gas, focusing on tech/healthcare for growth). Industry filtering helps users find opportunities aligned with their investment preferences.
+
+**Independent Test**: Apply different industry filters on the recommendations page and verify results match the selected sector.
+
+**Acceptance Scenarios**:
+
+1. **Given** the user is on the Recommendations page, **When** they view the filter options, **Then** they see checkboxes or a dropdown for each major industry: Technology/AI, Healthcare, Financials, Energy, Consumer Discretionary, Consumer Staples, Industrials, Materials, Utilities, Real Estate, Communications.
+2. **Given** the user is viewing ETFs, **When** they view filter options, **Then** they see ETF-specific categories: Broad Market ETFs, Sector ETFs, Bond ETFs, International ETFs, Commodity ETFs, Thematic/AI ETFs.
+3. **Given** the user selects multiple industries (e.g., Technology AND Healthcare), **When** the filter is applied, **Then** results include stocks from both selected industries (OR logic).
+4. **Given** no stocks match the selected filter combination, **When** the filter is applied, **Then** a helpful message is displayed: "No Buy signals found in selected sectors. Try broadening your filter."
+
+---
+
+### User Story 12 - Include ETFs in Analysis (Priority: P1)
+
+The user can search for, analyze, and track Exchange-Traded Funds (ETFs) just like individual stocks. ETFs display the same technical analysis, consolidated signals, and indicators as stocks. ETFs are clearly labeled as such and include ETF-specific information like expense ratio, assets under management (AUM), and fund category. Popular ETFs (SPY, QQQ, VTI, VOO, IWM, etc.) are included in recommendations and search results.
+
+**Why this priority**: Passive investors frequently invest in ETFs rather than individual stocks. ETFs provide diversification and are ideal for the monthly investment pattern. Excluding ETFs would miss a major asset class that the target user cares about.
+
+**Independent Test**: Search for "SPY", "QQQ", and "VTI" and verify ETF-specific data is displayed alongside technical analysis.
+
+**Acceptance Scenarios**:
+
+1. **Given** the user searches for an ETF (e.g., "SPY" or "S&P 500 ETF"), **When** results are displayed, **Then** the ETF appears with an "ETF" badge distinguishing it from individual stocks.
+2. **Given** the user views an ETF detail page, **When** the page loads, **Then** it displays all the same technical indicators and consolidated signal as stocks, plus ETF-specific metrics: expense ratio, AUM (assets under management), fund category, and top holdings (if available).
+3. **Given** the user wants to add an ETF to their portfolio, **When** they add it with purchase price and quantity, **Then** it functions identically to adding a stock, with proper gain/loss tracking.
+4. **Given** the user views the recommendations page, **When** the list loads, **Then** ETFs with Buy/Strong Buy signals appear in the numbered list alongside stocks, clearly marked with an "ETF" badge.
+5. **Given** the user wants to view only ETFs in recommendations, **When** they apply the "ETFs only" filter, **Then** the list shows only ETFs, re-ranked by signal strength.
+
+---
+
+### User Story 13 - Secure Account Management (Priority: P1)
+
+The user can create a secure account with email/password or OAuth (Google), with proper security measures including password strength requirements, email verification, and secure session management. User data (portfolio positions, purchase prices, quantities, dates) is stored securely with encryption. Users can view and manage their security settings, including password changes, active sessions, and optional two-factor authentication.
+
+**Why this priority**: Users are entrusting the platform with sensitive financial information (their holdings, costs, timing). Strong security is essential for user trust and data protection.
+
+**Independent Test**: Create an account, verify email flow, test password strength requirements, verify session security.
+
+**Acceptance Scenarios**:
+
+1. **Given** the user is creating an account with email/password, **When** they enter a password, **Then** the system requires: minimum 8 characters, at least one uppercase letter, at least one number, at least one special character. A strength indicator shows password quality.
+2. **Given** the user has just signed up, **When** registration completes, **Then** the system sends a verification email with a secure link that expires in 24 hours. The user cannot access protected features until email is verified.
+3. **Given** the user is logged in, **When** they are inactive for 30 minutes, **Then** the session expires and they must re-authenticate to access protected features (portfolio, watchlist, settings).
+4. **Given** the user wants to view their security settings, **When** they navigate to Settings > Security, **Then** they see: password change option, list of active sessions (with ability to revoke), email verification status, and optional 2FA setup.
+5. **Given** the user enables two-factor authentication (2FA), **When** they log in subsequently, **Then** they must enter a code from their authenticator app after entering their password.
+6. **Given** the user's portfolio data is stored, **When** data is at rest in the database, **Then** sensitive fields (purchase prices, quantities) are encrypted with industry-standard encryption (AES-256).
+
+---
+
 ### Edge Cases
 
 - What happens when a stock is halted or suspended from trading? The platform MUST display the last known data with a clear "Trading Halted" status and the halt date.
@@ -172,11 +246,12 @@ The user receives notifications (email and/or in-app) when significant signal ch
 
 ### Functional Requirements
 
-#### Stock Search & Discovery
-- **FR-001**: The system MUST allow users to search for stocks by company name, ticker symbol, or ISIN across all supported exchanges.
-- **FR-002**: The system MUST support stocks from US exchanges (NYSE, NASDAQ), major European exchanges (LSE, Euronext, Deutsche Boerse, OMX Nordic), and major Asian exchanges (Tokyo, Hong Kong, Shanghai).
+#### Stock & ETF Search & Discovery
+- **FR-001**: The system MUST allow users to search for stocks AND ETFs by company/fund name, ticker symbol, or ISIN across all supported exchanges.
+- **FR-002**: The system MUST support stocks and ETFs from US exchanges (NYSE, NASDAQ), major European exchanges (LSE, Euronext, Deutsche Boerse, OMX Nordic), and major Asian exchanges (Tokyo, Hong Kong, Shanghai).
 - **FR-003**: The system MUST provide fuzzy/partial matching in search results.
 - **FR-004**: The system MUST display the exchange name and country alongside each search result.
+- **FR-004b**: The system MUST display an "ETF" badge on search results that are Exchange-Traded Funds to distinguish them from individual stocks.
 
 #### Technical Analysis & Signals
 
@@ -239,6 +314,40 @@ The user receives notifications (email and/or in-app) when significant signal ch
 - **FR-032**: The system MUST provide a dedicated section documenting every technical indicator used, including: definition, parameters, interpretation guidance, and limitations.
 - **FR-033**: The system MUST document how the consolidated signal is calculated, including the weighting or combination methodology.
 
+#### Stock Recommendations
+- **FR-038**: The system MUST provide a Recommendations page displaying the top 100 stocks and ETFs with Buy or Strong Buy consolidated signals.
+- **FR-039**: The Recommendations list MUST be numbered 1-100 and sorted by signal strength (strongest buy signals first, using the numeric signal score).
+- **FR-040**: Each entry in the Recommendations list MUST display: rank number, company/ETF name, ticker symbol, exchange, industry/sector tag, consolidated signal badge, and numeric signal score.
+- **FR-041**: The Recommendations page MUST update with end-of-day data to reflect the latest signal calculations.
+- **FR-042**: Each recommendation entry MUST be clickable, navigating the user to the detailed stock/ETF page.
+
+#### Industry & Sector Filtering
+- **FR-043**: The system MUST support filtering stocks and ETFs by industry/sector on the Recommendations page.
+- **FR-044**: Industry filter options MUST include at minimum: Technology/AI, Healthcare, Financials, Energy, Consumer Discretionary, Consumer Staples, Industrials, Materials, Utilities, Real Estate, Communications.
+- **FR-045**: ETF-specific filter categories MUST include: Broad Market, Sector, Bond, International, Commodity, Thematic/AI.
+- **FR-046**: When an industry filter is applied, the system MUST re-rank the filtered results 1 through N based on signal strength within that subset.
+- **FR-047**: When multiple industries are selected, the system MUST display results matching ANY selected industry (OR logic).
+- **FR-048**: The system MUST display a helpful message when no results match the selected filter combination.
+
+#### ETF Support
+- **FR-049**: The system MUST support ETFs (Exchange-Traded Funds) with the same technical analysis capabilities as individual stocks.
+- **FR-050**: ETF detail pages MUST display all technical indicators, charts, and consolidated signals identical to stock pages.
+- **FR-051**: ETF detail pages MUST additionally display ETF-specific metrics: expense ratio, AUM (assets under management), fund category, and top holdings (when available).
+- **FR-052**: ETFs MUST be visually distinguished with an "ETF" badge throughout the platform (search results, recommendations, portfolio, watchlist).
+- **FR-053**: The system MUST support adding ETFs to portfolios and watchlists with the same functionality as stocks.
+- **FR-054**: The Recommendations page MUST include an "ETFs only" filter toggle to show only ETF results.
+
+#### Enhanced Account Security
+- **FR-055**: User password creation MUST require: minimum 8 characters, at least one uppercase letter, at least one lowercase letter, at least one number, and at least one special character.
+- **FR-056**: The system MUST display a password strength indicator during account creation and password changes.
+- **FR-057**: The system MUST send email verification upon account creation with a secure link that expires in 24 hours.
+- **FR-058**: User sessions MUST expire after 30 minutes of inactivity, requiring re-authentication for protected features.
+- **FR-059**: The system MUST provide a Security settings page showing: password change option, active sessions list with revocation capability, email verification status, and 2FA setup option.
+- **FR-060**: The system SHOULD support optional two-factor authentication (2FA) via authenticator app (TOTP).
+- **FR-061**: Sensitive user data (portfolio positions, purchase prices, quantities) MUST be encrypted at rest using industry-standard encryption (AES-256 or equivalent).
+- **FR-062**: The system MUST log all authentication attempts (successful and failed) for security monitoring.
+- **FR-063**: The system MUST lock accounts temporarily after 5 consecutive failed login attempts, requiring email verification to unlock.
+
 #### Data Quality
 - **FR-034**: The system MUST display the timestamp of the last data update for each stock.
 - **FR-035**: The system MUST indicate when data may be stale or delayed beyond the normal update interval.
@@ -256,14 +365,17 @@ The user receives notifications (email and/or in-app) when significant signal ch
 
 ### Key Entities
 
-- **Stock**: A publicly traded security identified by ticker symbol, exchange, company name, and ISIN. Has associated price history, technical indicators, financial metrics, and signals.
+- **Stock**: A publicly traded security identified by ticker symbol, exchange, company name, and ISIN. Has associated price history, technical indicators, financial metrics, signals, and industry/sector classification.
+- **ETF (Exchange-Traded Fund)**: A fund that trades like a stock, identified by ticker symbol and exchange. Has all stock-like properties plus ETF-specific metrics: expense ratio, AUM, fund category, and top holdings. Distinguished from stocks with an "ETF" badge throughout the platform.
 - **Technical Indicator**: A mathematical calculation applied to price/volume data (e.g., SMA, RSI, MACD). Has parameters (e.g., period length), a computed value, and an individual signal.
-- **Consolidated Signal**: An aggregate recommendation derived from multiple technical indicators. Has a level (Strong Buy to Strong Sell), a confidence assessment, and a plain-language explanation.
-- **Financial Metric**: A fundamental data point about a company (e.g., P/E ratio, market cap). Has a value, a unit, and a description.
-- **Portfolio**: A user's collection of stock holdings. Contains positions (stock + quantity + purchase price + date) and computes aggregate performance.
-- **Watchlist**: A user's list of stocks they are monitoring but do not hold. Displays current signals and prices.
-- **User Account**: An authenticated user identity that owns a portfolio and watchlist, with a selected base currency preference and notification settings.
-- **Notification**: An alert sent to a user when a signal change occurs on a watched or held stock. Has a channel (email/in-app), a trigger condition, and delivery status.
+- **Consolidated Signal**: An aggregate recommendation derived from multiple technical indicators. Has a level (Strong Buy to Strong Sell), a confidence assessment, a numeric score (for ranking), and a plain-language explanation.
+- **Financial Metric**: A fundamental data point about a company/fund (e.g., P/E ratio, market cap, expense ratio). Has a value, a unit, and a description.
+- **Portfolio**: A user's collection of stock and ETF holdings. Contains positions (symbol + quantity + purchase price + date) and computes aggregate performance.
+- **Watchlist**: A user's list of stocks and ETFs they are monitoring but do not hold. Displays current signals and prices.
+- **User Account**: An authenticated user identity that owns a portfolio and watchlist, with a selected base currency preference, notification settings, and security settings (2FA status, active sessions).
+- **Notification**: An alert sent to a user when a signal change occurs on a watched or held asset. Has a channel (email/in-app), a trigger condition, and delivery status.
+- **Recommendation**: A ranked entry in the top 100 buy signals list. Contains rank number (1-100), asset (stock or ETF), signal level, signal score, and industry/sector classification. Updated daily with end-of-day data.
+- **Industry/Sector**: A classification category for stocks (Technology, Healthcare, Financials, etc.) and ETFs (Broad Market, Sector, Bond, etc.). Used for filtering recommendations and grouping assets.
 
 ## Success Criteria
 
@@ -271,25 +383,35 @@ The user receives notifications (email and/or in-app) when significant signal ch
 
 - **SC-001**: A user with no technical analysis knowledge can identify whether a stock is recommended as a Buy or Sell within 10 seconds of landing on the stock detail page.
 - **SC-002**: 100% of technical indicators displayed on the platform have a corresponding entry in the methodology/education section.
-- **SC-003**: The platform supports stocks from at least 5 distinct global exchanges at launch.
-- **SC-004**: Search returns relevant results for at least 95% of large-cap company names (top 500 by market cap globally).
+- **SC-003**: The platform supports stocks and ETFs from at least 5 distinct global exchanges at launch.
+- **SC-004**: Search returns relevant results for at least 95% of large-cap company names and major ETFs (top 500 stocks by market cap globally + top 100 ETFs by AUM).
 - **SC-005**: Portfolio gain/loss calculations are accurate to within 0.01% compared to actual market prices (excluding real-time fluctuations).
-- **SC-006**: 90% of first-time users can successfully search for a stock and understand its consolidated signal without external help.
-- **SC-007**: Every stock detail page displays a consolidated signal, a Monthly Trend Signal, at least 7 core individual indicator signals (SMA, EMA, RSI, MACD, Bollinger, Williams %R, MFI), and key financial metrics.
+- **SC-006**: 90% of first-time users can successfully search for a stock or ETF and understand its consolidated signal without external help.
+- **SC-007**: Every stock and ETF detail page displays a consolidated signal, a Monthly Trend Signal, at least 7 core individual indicator signals (SMA, EMA, RSI, MACD, Bollinger, Williams %R, MFI), and key financial metrics.
 - **SC-008**: Data displayed on the platform is no older than end-of-day of the previous trading session for each respective exchange.
-- **SC-009**: A user can import a CSV file with 20+ holdings and have all recognized stocks added to their portfolio within 60 seconds (including preview and confirmation).
+- **SC-009**: A user can import a CSV file with 20+ holdings and have all recognized stocks/ETFs added to their portfolio within 60 seconds (including preview and confirmation).
 - **SC-010**: Notifications for signal changes are delivered within 1 hour of the signal change being computed.
+- **SC-011**: The Recommendations page displays exactly 100 stocks/ETFs (or fewer if fewer have Buy signals) within 3 seconds of page load.
+- **SC-012**: Industry/sector filters update the recommendations list within 1 second of selection.
+- **SC-013**: ETFs are clearly distinguished with an "ETF" badge in 100% of displays (search results, recommendations, portfolio, watchlist, detail pages).
+- **SC-014**: Account creation enforces password strength requirements with 0% acceptance of weak passwords.
+- **SC-015**: Email verification is sent within 60 seconds of account creation.
+- **SC-016**: Sessions expire and require re-authentication after exactly 30 minutes of inactivity.
+- **SC-017**: All industry filters return accurate results — 100% of displayed stocks match the selected sector classification.
 
 ## Assumptions
 
-- **Stock data availability**: Free or affordable financial data providers exist that cover all targeted global exchanges with sufficient historical data for technical indicator computation (assumed based on industry standard providers).
+- **Stock and ETF data availability**: Free or affordable financial data providers exist that cover all targeted global exchanges with sufficient historical data for technical indicator computation (assumed based on industry standard providers). yfinance provides adequate ETF data including expense ratios, AUM, and holdings for major ETFs.
 - **Data update frequency**: End-of-day data is sufficient for the target user (passive monthly investor). Real-time streaming data is not required.
 - **Currency conversion**: Exchange rates for portfolio currency conversion are available and updated daily.
 - **Signal computation**: The consolidated signal uses a weighted combination of individual indicators, prioritizing those with the strongest backtested evidence. Williams %R (81% win rate on S&P 500), MFI (71% win rate on SPY), RSI, and MACD are weighted highest for momentum. SMA/EMA crossovers weighted for trend direction. ADX used as a confidence filter (signals flagged as less reliable when ADX < 20). The 10-month SMA rule is displayed separately as a Monthly Trend Signal due to its unique evidence base for passive monthly investors (Meb Faber research).
 - **Indicator selection rationale**: Indicators were selected based on backtested evidence across 20-100 years of market data. Stochastic Oscillator was excluded in favor of Williams %R (which outperforms it in equity backtests). Ichimoku Cloud was excluded due to a 10% win rate in a 15,024-trade backtest. Fibonacci Retracement was excluded due to academic evidence showing retracement levels are no more likely than random values. OBV was replaced by MFI (volume-weighted RSI with stronger backtested performance).
-- **Large-cap focus**: While all stocks are available, the platform's signal reliability warnings and default views are optimized for large-cap stocks (typically >$10B market cap).
-- **User authentication**: Standard email/password or OAuth-based authentication is sufficient for the target audience.
+- **Large-cap focus**: While all stocks and ETFs are available, the platform's signal reliability warnings and default views are optimized for large-cap stocks (typically >$10B market cap) and major ETFs (typically >$1B AUM).
+- **User authentication**: Standard email/password or OAuth-based authentication with enhanced security measures (password strength, email verification, session management, optional 2FA) is required for the target audience.
 - **Language**: The platform is in English. Localization is not required at launch.
+- **Recommendations data**: The platform maintains a pre-computed list of top 100 buy signals, updated daily after market close. This requires scanning a universe of liquid stocks and ETFs (approximately 5,000-10,000 symbols) to identify and rank buy signals.
+- **Industry/Sector classification**: Industry and sector classifications are available from yfinance for stocks. ETF categorization is based on fund type (equity, bond, commodity) and focus (sector, broad market, international, thematic).
+- **ETF technical analysis validity**: Technical analysis indicators apply equally to ETFs as to individual stocks, as ETFs trade like stocks with price, volume, and the same chart patterns.
 
 ## Out of Scope
 

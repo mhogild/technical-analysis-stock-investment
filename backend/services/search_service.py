@@ -1,4 +1,5 @@
 import yfinance as yf
+from yfinance import Search
 from difflib import SequenceMatcher
 from models.stock import SearchResult
 from config import MAX_SEARCH_RESULTS
@@ -41,23 +42,23 @@ class SearchService:
                     symbol_with_suffix, results, seen_symbols, exchange
                 )
 
-        # 3. Use yfinance search for broader matching
+        # 3. Use yfinance search for broader matching (by company name)
         try:
-            search_results = yf.search(query, max_results=MAX_SEARCH_RESULTS)
-            if search_results and "quotes" in search_results:
-                for quote in search_results["quotes"]:
-                    symbol = quote.get("symbol", "")
-                    if symbol and symbol not in seen_symbols:
-                        seen_symbols.add(symbol)
-                        results.append(
-                            SearchResult(
-                                symbol=symbol,
-                                name=quote.get("longname", quote.get("shortname", symbol)),
-                                exchange=quote.get("exchange", "Unknown"),
-                                country=quote.get("country", _guess_country(symbol)),
-                                market_cap=quote.get("marketCap"),
-                            )
+            search_obj = Search(query, max_results=MAX_SEARCH_RESULTS)
+            quotes = search_obj.quotes or []
+            for quote in quotes:
+                symbol = quote.get("symbol", "")
+                if symbol and symbol not in seen_symbols:
+                    seen_symbols.add(symbol)
+                    results.append(
+                        SearchResult(
+                            symbol=symbol,
+                            name=quote.get("longname", quote.get("shortname", symbol)),
+                            exchange=quote.get("exchDisp", quote.get("exchange", "Unknown")),
+                            country=quote.get("country", _guess_country(symbol)),
+                            market_cap=quote.get("marketCap"),
                         )
+                    )
         except Exception:
             pass
 

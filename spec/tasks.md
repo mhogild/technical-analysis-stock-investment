@@ -215,12 +215,102 @@
 
 ---
 
+## Phase 12: Stock Recommendations (P1 — US10, US11)
+
+> Users can view top 100 buy signals ranked by strength with industry/sector filtering.
+
+**Independent Test**: Navigate to recommendations page and verify 100 stocks/ETFs displayed, numbered, sorted by signal strength, with working industry filters.
+
+- [ ] [T099] [US10] Create `backend/services/recommendations_service.py` — implement `RecommendationsService` class: method `get_top_buy_signals(limit=100, industries=None, etf_only=False)` that scans a universe of liquid stocks/ETFs (top 5000 by market cap + major ETFs), computes consolidated signals, filters to Buy/Strong Buy only, sorts by signal_score descending, returns ranked list. Include caching (1 day TTL). (FR-038, FR-039)
+- [ ] [T100] [US10] Create `backend/services/industry_service.py` — implement `IndustryService` class: method `get_industries()` returning list of available industries with labels (Technology/AI, Healthcare, Financials, Energy, Consumer Discretionary, Consumer Staples, Industrials, Materials, Utilities, Real Estate, Communications) and ETF categories (Broad Market, Sector, Bond, International, Commodity, Thematic). Method `classify_symbol(symbol)` returning industry for a stock or ETF category. (FR-043, FR-044, FR-045)
+- [ ] [T101] [US10] Create `backend/routers/recommendations.py` — implement `GET /api/recommendations?limit=100&industries={list}&etf_only={bool}` endpoint returning ranked list of recommendations with: rank, symbol, name, exchange, is_etf, industry, consolidated_signal, signal_score, last_price. Wire into `backend/main.py`. (FR-038, FR-040)
+- [ ] [T102] [US10] Create `backend/routers/industries.py` — implement `GET /api/industries` endpoint returning list of available industry filters with id, name, type (stock_industry or etf_category). Wire into `backend/main.py`. (FR-043)
+- [ ] [T103] [US10] Create `backend/models/recommendation.py` — Pydantic models: `Recommendation` (rank, symbol, name, exchange, is_etf, industry, consolidated_signal, signal_score, last_price), `RecommendationsResponse` (items list, total_count, filtered_by). (FR-040)
+- [ ] [T104] [US10] Create `frontend/src/hooks/useRecommendations.ts` — custom hook: `useRecommendations(industries?, etfOnly?)` that fetches recommendations from API with filter parameters. Returns `{ recommendations, isLoading, error, refetch }`. Caches response client-side for 5 minutes.
+- [ ] [T105] [US10] Create `frontend/src/hooks/useIndustryFilter.ts` — custom hook: `useIndustryFilter()` that fetches available industries, manages selected filter state, returns `{ industries, selectedIndustries, toggleIndustry, clearFilters, etfOnly, setEtfOnly }`.
+- [ ] [T106] [US11] Create `frontend/src/components/recommendations/IndustryFilter.tsx` — sidebar or dropdown component: displays industry checkboxes grouped by type (Stock Industries, ETF Categories), "Select All" / "Clear All" buttons, search box to filter industry options. Calls `useIndustryFilter` hook. (FR-043, FR-044, FR-045, FR-047)
+- [ ] [T107] [US10] Create `frontend/src/components/recommendations/RecommendationRow.tsx` — table row or card component: displays rank number (bold, large), stock/ETF name, ticker with exchange badge, ETF badge if applicable, industry tag, ConsolidatedSignal badge, numeric score with visual indicator. Clicking navigates to `/stock/[symbol]`. (FR-040, FR-042)
+- [ ] [T108] [US10] Create `frontend/src/components/recommendations/RecommendationsList.tsx` — scrollable list/table component: renders numbered list (1-100) of RecommendationRow components, handles empty state ("No buy signals found in selected sectors"), handles fewer than 100 results gracefully. (FR-038, FR-039, FR-048)
+- [ ] [T109] [US10] [P] Create `frontend/src/components/recommendations/ETFOnlyToggle.tsx` — toggle switch component: "Show ETFs only" with clear label. Updates filter state via `useIndustryFilter` hook. (FR-054)
+- [ ] [T110] [US10] Create `frontend/src/app/recommendations/page.tsx` — recommendations page: header with "Top Buy Signals" title and explanation, IndustryFilter sidebar/dropdown, ETFOnlyToggle, RecommendationsList as main content. Uses useRecommendations and useIndustryFilter hooks. Loading skeleton while fetching. Responsive layout (filter collapses on mobile). (FR-038, FR-039, FR-040, FR-041, FR-042)
+- [ ] [T111] [US10] Create Next.js API proxy routes: `frontend/src/app/api/recommendations/route.ts` and `frontend/src/app/api/industries/route.ts` that proxy to Python backend endpoints.
+- [ ] [T112] [US10] Add "Recommendations" link to Navbar — update `frontend/src/components/layout/Navbar.tsx` to include prominent link to `/recommendations` page between Search and Portfolio.
+- [ ] [T113] [US10] Create `backend/scheduler/jobs.py` update — add scheduled job `compute_recommendations()` that runs after market close, scans stock/ETF universe, computes signals, stores top 100 buy signals in cache for fast retrieval. (FR-041)
+
+**Checkpoint**: User navigates to `/recommendations` and sees numbered list of top 100 buy signals. List is sorted by signal strength (strongest first). Industry filters work correctly. ETF-only toggle filters to only ETFs. Clicking any row navigates to stock detail page.
+
+---
+
+## Phase 13: ETF Support (P1 — US12)
+
+> Users can search for, analyze, and track ETFs with full technical analysis and ETF-specific metrics.
+
+**Independent Test**: Search for "SPY", "QQQ", and "VTI" and verify ETF-specific data is displayed alongside technical analysis.
+
+- [ ] [T114] [US12] Create `backend/services/etf_fetcher.py` — implement `ETFFetcher` class: method `get_etf_details(symbol)` returning expense_ratio, aum, fund_category, top_holdings (list of {symbol, name, weight_percent}), inception_date. Use yfinance info fields (expenseRatio, totalAssets, category, holdings). Cache for 24 hours. (FR-051)
+- [ ] [T115] [US12] Create `backend/models/etf.py` — Pydantic models: `ETFHolding` (symbol, name, weight_percent), `ETFDetails` (symbol, fund_name, expense_ratio, aum, fund_category, top_holdings, inception_date, is_etf). (FR-051)
+- [ ] [T116] [US12] Update `backend/services/data_fetcher.py` — modify `get_stock_info(symbol)` to detect if symbol is an ETF (check quoteType in yfinance response), set `is_etf: true`, and include basic ETF fields. Modify `get_stock_info` to optionally call `ETFFetcher.get_etf_details` for full ETF data. (FR-049, FR-050)
+- [ ] [T117] [US12] Update `backend/routers/stock.py` endpoint `GET /api/stock/{symbol}` — include `is_etf` flag and ETF-specific fields (expense_ratio, aum, fund_category, top_holdings) when symbol is an ETF. All indicator/signal endpoints work identically for stocks and ETFs. (FR-049, FR-050, FR-051)
+- [ ] [T118] [US12] Update `frontend/src/types/index.ts` — add TypeScript interfaces: `ETFDetails`, `ETFHolding`, and extend `Stock` interface with optional `is_etf`, `expense_ratio`, `aum`, `fund_category`, `top_holdings` fields.
+- [ ] [T119] [US12] Create `frontend/src/components/stock/ETFBadge.tsx` — simple badge component: displays "ETF" in a distinct color (e.g., blue pill badge). Used throughout platform to distinguish ETFs from stocks. (FR-052)
+- [ ] [T120] [US12] Create `frontend/src/components/stock/ETFMetrics.tsx` — card component: displays ETF-specific metrics: expense ratio (as percentage with "Lower is better" note), AUM (formatted, e.g., "$500B"), fund category badge, inception date, top 10 holdings table (if available). Each metric has plain-language explanation. (FR-051)
+- [ ] [T121] [US12] Update `frontend/src/app/stock/[symbol]/page.tsx` — detect if stock is ETF from API response. If ETF: display ETFBadge prominently in header, render ETFMetrics section after FinancialMetrics, ensure all indicator/chart sections work identically. (FR-049, FR-050, FR-051)
+- [ ] [T122] [US12] Update `frontend/src/components/layout/SearchBar.tsx` — display ETFBadge in search results dropdown for ETF results. (FR-004b, FR-052)
+- [ ] [T123] [US12] Update `frontend/src/components/portfolio/PositionRow.tsx` — display ETFBadge next to symbol for ETF holdings. (FR-052, FR-053)
+- [ ] [T124] [US12] Update `frontend/src/components/watchlist/WatchlistTable.tsx` — display ETFBadge next to symbol for ETF entries. (FR-052, FR-053)
+- [ ] [T125] [US12] Update `backend/services/search_service.py` — ensure ETFs are included in search results with `is_etf: true` flag. Popular ETFs (SPY, QQQ, VTI, VOO, IWM, VEA, VWO, BND, etc.) should be prioritized in results. (FR-001, FR-004b)
+
+**Checkpoint**: Search for "SPY" returns ETF with clear ETF badge. ETF detail page shows all technical indicators plus ETF-specific metrics (expense ratio, AUM, holdings). ETFs appear in portfolio and watchlist with ETF badge. Recommendations include ETFs with proper badges.
+
+---
+
+## Phase 14: Enhanced Account Security (P1 — US13)
+
+> Users can create secure accounts with password strength requirements, email verification, session management, and optional 2FA.
+
+**Independent Test**: Create account, verify email flow, test password strength requirements, verify session security.
+
+- [ ] [T126] [US13] Update Supabase migrations — create `supabase/migrations/007_security_enhancements.sql`: add columns to profiles table (email_verified_at, two_factor_enabled, two_factor_secret_encrypted, failed_login_attempts, locked_until, last_password_change); create user_sessions table (id, user_id, created_at, last_active_at, expires_at, ip_address, user_agent, is_revoked). Add RLS policies. (FR-059)
+- [ ] [T127] [US13] Create `frontend/src/components/security/PasswordStrength.tsx` — password strength meter component: real-time evaluation as user types, shows strength bar (weak/fair/good/strong), lists requirements met/unmet (length, uppercase, lowercase, number, special char). Returns strength score for parent form validation. (FR-055, FR-056)
+- [ ] [T128] [US13] Update `frontend/src/app/auth/signup/page.tsx` — integrate PasswordStrength component, enforce all password requirements before allowing submit, display clear validation errors. Form only submits when password meets all requirements. (FR-055, FR-056)
+- [ ] [T129] [US13] Configure Supabase email verification — enable email confirmation in Supabase Auth settings, customize verification email template with 24-hour expiry link. Create `frontend/src/app/auth/verify-email/page.tsx` to handle verification callback and display success/error. (FR-057)
+- [ ] [T130] [US13] Create `frontend/src/components/security/VerifyEmailBanner.tsx` — banner component: displays for logged-in users with unverified email, shows "Please verify your email to access all features" with resend button. Hidden after verification. (FR-057)
+- [ ] [T131] [US13] Implement session timeout — configure Supabase session to refresh every 25 minutes, expire after 30 minutes of inactivity. Frontend checks session expiry on protected routes and redirects to login if expired. Update `last_active_at` on each API request. (FR-058)
+- [ ] [T132] [US13] Create `frontend/src/hooks/useSecurity.ts` — custom hook: `useSecurity()` returning `{ sessions, revokeSession, twoFactorEnabled, enable2FA, disable2FA, changePassword }`. Fetches active sessions from Supabase, manages 2FA state.
+- [ ] [T133] [US13] Create `frontend/src/components/security/SessionList.tsx` — component displaying active sessions: current session highlighted, shows device/browser, IP address (partially masked), last active time. "Revoke" button for each session except current. (FR-059)
+- [ ] [T134] [US13] [P] Create `frontend/src/components/security/TwoFactorSetup.tsx` — component for 2FA setup: generates TOTP secret, displays QR code for authenticator app, requires verification code entry to enable. Backup codes generation. (FR-060)
+- [ ] [T135] [US13] Create `frontend/src/app/settings/security/page.tsx` — security settings page: PasswordStrength-enabled password change form, SessionList component, TwoFactorSetup component, email verification status. Protected route. (FR-059)
+- [ ] [T136] [US13] Update `frontend/src/app/auth/login/page.tsx` — after password verification, check if 2FA is enabled. If enabled, display TOTP code input before completing login. Handle 2FA verification errors. (FR-060)
+- [ ] [T137] [US13] Implement account lockout — track failed login attempts in Supabase. After 5 consecutive failures, lock account for 15 minutes. Display friendly message with unlock instructions (wait or email reset). (FR-063)
+- [ ] [T138] [US13] Configure database encryption — ensure Supabase project uses encryption at rest for all tables. Document in README that portfolio data (positions, prices) is encrypted. (FR-061)
+- [ ] [T139] [US13] [P] Add login audit logging — create `login_audit` table in Supabase (user_id, timestamp, success, ip_address, user_agent). Log all login attempts. Viewable in admin if needed. (FR-062)
+
+**Checkpoint**: Account creation enforces password strength with visual meter. Email verification required for protected features. Sessions expire after 30 minutes. Security settings page shows active sessions with revoke. 2FA can be enabled with authenticator app. Account locks after 5 failed logins.
+
+---
+
+## Phase 15: Final Polish for New Features
+
+> Ensure all new features are production-ready with proper testing and documentation.
+
+- [ ] [T140] [P] Responsive design for new pages — test Recommendations page on mobile (375px), tablet (768px), desktop (1280px). Ensure IndustryFilter collapses to modal/dropdown on mobile. RecommendationsList scrolls properly. ETFMetrics displays well on all sizes.
+- [ ] [T141] [P] Loading and error states for new features — add LoadingSkeleton to recommendations page, ETF metrics section, security settings. Handle API errors gracefully with ErrorMessage and retry.
+- [ ] [T142] Write backend tests for new services: `test_recommendations_service.py` (ranking logic, industry filtering, ETF-only filter), `test_industry_service.py` (classification accuracy), `test_etf_fetcher.py` (ETF data parsing). Target 80% coverage.
+- [ ] [T143] Write frontend tests for new components: `RecommendationRow.test.tsx`, `IndustryFilter.test.tsx`, `ETFBadge.test.tsx`, `ETFMetrics.test.tsx`, `PasswordStrength.test.tsx`, `SessionList.test.tsx`. Target 70% coverage.
+- [ ] [T144] Update README.md — document new features: Recommendations page usage, ETF support, security features (password requirements, 2FA, session management). Update project structure with new files.
+- [ ] [T145] End-to-end testing — manually test full flows: browse recommendations with filters, click through to ETF detail page, add ETF to portfolio, verify security features (signup with password strength, email verification, 2FA setup, session revocation).
+
+**Final Checkpoint for New Features**: Recommendations page displays top 100 buy signals with working industry filters. ETFs fully supported with distinct badges and metrics. Security features complete (password strength, email verification, sessions, optional 2FA). All new features responsive and accessible. Tests written and passing.
+
+---
+
 ## Summary
 
-- **Total tasks**: 98
-- **Parallelizable**: 22 tasks marked [P]
+- **Total tasks**: 145
+- **Parallelizable**: 27 tasks marked [P]
 - **MVP scope**: Phase 1-4 (Setup + Foundation + Search + Technical Analysis Core) — delivers the core value proposition: search for any stock and see consolidated buy/sell signals with individual indicator analysis
-- **Execution order**: Sequential by phase; within each phase, [P] tasks can run in parallel. Phase 5 (Financial Insights) can start in parallel with Phase 4 for the frontend components marked [P]
+- **Extended MVP**: Phase 12-14 (Recommendations, ETF Support, Enhanced Security) — delivers differentiated value for passive investors with buy signal discovery and secure account management
+- **Execution order**: Sequential by phase; within each phase, [P] tasks can run in parallel. Phase 5 (Financial Insights) can start in parallel with Phase 4 for the frontend components marked [P]. Phase 12-14 can be developed in parallel after Phase 11.
 - **Recommended starting phase**: Phase 1 (Setup) — establish the project scaffolding before any feature work
 
 ## FR Coverage Cross-Reference
@@ -257,6 +347,41 @@
 | FR-026 (Merge/replace) | T067 |
 | FR-027 (Signal change notifications) | T072, T075, T076 |
 | FR-028 (Notification channels) | T072, T077 |
+| FR-029 (Notification types) | T072, T077 |
+| FR-030 (Batch notifications) | T072 |
+| FR-031 (Disable notifications) | T072, T077 |
+| FR-032 (Indicator documentation) | T078, T079, T081 |
+| FR-033 (Consolidated methodology) | T078, T080 |
+| FR-034 (Data timestamp) | T050 |
+| FR-035 (Stale data warning) | T050 |
+| FR-036 (Market status) | T049, T052 |
+| FR-037 (Reliability warning) | T051, T090 |
+| FR-038 (Recommendations page) | T099, T101, T108, T110 |
+| FR-039 (Recommendations sorting) | T099, T108, T110 |
+| FR-040 (Recommendation entry display) | T101, T103, T107, T110 |
+| FR-041 (Recommendations update) | T110, T113 |
+| FR-042 (Recommendation clickable) | T107, T110 |
+| FR-043 (Industry filtering) | T100, T102, T106 |
+| FR-044 (Industry filter options) | T100, T106 |
+| FR-045 (ETF filter categories) | T100, T106 |
+| FR-046 (Re-rank filtered results) | T099 |
+| FR-047 (Multi-industry OR logic) | T106 |
+| FR-048 (Empty filter message) | T108 |
+| FR-049 (ETF technical analysis) | T116, T117, T121 |
+| FR-050 (ETF indicators/signals) | T116, T117, T121 |
+| FR-051 (ETF-specific metrics) | T114, T115, T117, T120, T121 |
+| FR-052 (ETF badge) | T119, T121, T122, T123, T124 |
+| FR-053 (ETF portfolio/watchlist) | T123, T124 |
+| FR-054 (ETF-only filter) | T109 |
+| FR-055 (Password strength requirements) | T127, T128 |
+| FR-056 (Password strength indicator) | T127, T128 |
+| FR-057 (Email verification) | T129, T130 |
+| FR-058 (Session timeout) | T131 |
+| FR-059 (Security settings page) | T126, T132, T133, T135 |
+| FR-060 (Two-factor authentication) | T134, T136 |
+| FR-061 (Data encryption at rest) | T138 |
+| FR-062 (Login audit logging) | T139 |
+| FR-063 (Account lockout) | T137 |
 | FR-029 (Notification types) | T072, T077 |
 | FR-030 (Batch notifications) | T072 |
 | FR-031 (Disable notifications) | T072, T077 |

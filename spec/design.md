@@ -86,34 +86,41 @@ Build a web-based stock technical analysis platform for passive investors, provi
 - In-app notification display
 
 **Key Pages**:
-- `/` - Homepage with search bar and featured/trending stocks
-- `/stock/[symbol]` - Stock detail page (signals, charts, indicators, financials)
-- `/portfolio` - Portfolio dashboard with holdings and performance
-- `/watchlist` - Watchlist with signals and prices
+- `/` - Homepage with search bar and featured/trending stocks/ETFs
+- `/stock/[symbol]` - Stock/ETF detail page (signals, charts, indicators, financials, ETF-specific metrics)
+- `/recommendations` - Top 100 buy signals ranked by strength with industry filtering
+- `/portfolio` - Portfolio dashboard with holdings (stocks and ETFs) and performance
+- `/watchlist` - Watchlist with signals and prices for stocks and ETFs
 - `/methodology` - Education section explaining all indicators
 - `/settings` - User preferences (base currency, notification settings)
+- `/settings/security` - Security settings (password, sessions, 2FA)
 
 #### Component: Python FastAPI Backend
-**Purpose**: Fetch stock data from Yahoo Finance, compute technical indicators and signals, provide search, and manage notification scheduling.
+**Purpose**: Fetch stock and ETF data from Yahoo Finance, compute technical indicators and signals, provide search, manage recommendations, and handle notification scheduling.
 **Location**: `backend/`
 **Responsibilities**:
-- Fetching historical price data and financial metrics via yfinance
+- Fetching historical price data and financial metrics via yfinance (stocks and ETFs)
+- Fetching ETF-specific data (expense ratio, AUM, holdings, fund category)
 - Computing core technical indicators (SMA, EMA, RSI, MACD, Bollinger Bands, Williams %R, MFI)
 - Computing secondary indicators (ROC, ADX, ATR, VWAP)
 - Computing Monthly Trend Signal (10-month SMA rule for passive investors)
 - Computing individual indicator signals (Buy/Sell/Neutral)
-- Computing consolidated signal (Strong Buy to Strong Sell) with explanation
-- Stock search with fuzzy matching
-- Caching stock data to reduce Yahoo Finance calls
+- Computing consolidated signal (Strong Buy to Strong Sell) with explanation and numeric score
+- Stock and ETF search with fuzzy matching
+- Caching stock/ETF data to reduce Yahoo Finance calls
+- Managing recommendations engine (scanning universe, ranking by signal strength)
+- Industry/sector classification and filtering
 - CSV portfolio import parsing and ticker validation
 - Scheduled signal computation and notification dispatch (email via SMTP, in-app via Supabase)
 
 **Key Endpoints**:
-- `GET /api/search?q={query}` - Search stocks across exchanges
-- `GET /api/stock/{symbol}` - Stock overview (price, financials, market info)
+- `GET /api/search?q={query}&type={stock|etf|all}` - Search stocks and ETFs across exchanges
+- `GET /api/stock/{symbol}` - Stock/ETF overview (price, financials, market info, ETF-specific metrics)
 - `GET /api/stock/{symbol}/indicators` - All technical indicators with signals
 - `GET /api/stock/{symbol}/history?period={period}` - Historical price data for charts
-- `GET /api/stock/{symbol}/signal` - Consolidated signal with explanation
+- `GET /api/stock/{symbol}/signal` - Consolidated signal with explanation and score
+- `GET /api/recommendations?limit=100&industries={list}&etf_only={bool}` - Top buy signals ranked by strength
+- `GET /api/industries` - List of available industries/sectors for filtering
 - `POST /api/portfolio/import` - Parse and validate CSV upload
 - `GET /api/exchanges/status` - Market open/closed status for all exchanges
 
@@ -293,15 +300,86 @@ Consolidated Signal (evidence-weighted):
 **Relationships**: Belongs to User.
 
 ### Entity: StockCache (Backend SQLite/Redis)
-**Purpose**: Cache stock data to reduce Yahoo Finance API calls
+**Purpose**: Cache stock and ETF data to reduce Yahoo Finance API calls
 **Key Fields**:
 - symbol: string - ticker symbol
-- data_type: string - "history" | "info" | "indicators"
+- data_type: string - "history" | "info" | "indicators" | "etf_details"
 - data: jsonb - cached response
 - fetched_at: timestamp - when data was last fetched
 - expires_at: timestamp - cache expiry (EOD data: next market open)
 
 **Relationships**: None (ephemeral cache).
+
+### Entity: ETFDetails (Backend)
+**Purpose**: Store ETF-specific information not available for regular stocks
+**Key Fields**:
+- symbol: string - ticker symbol (e.g., "SPY")
+- fund_name: string - full fund name (e.g., "SPDR S&P 500 ETF Trust")
+- expense_ratio: decimal - annual expense ratio (e.g., 0.0945 for 0.0945%)
+- aum: decimal - assets under management in USD
+- fund_category: string - "Broad Market" | "Sector" | "Bond" | "International" | "Commodity" | "Thematic"
+- top_holdings: jsonb - array of {symbol, name, weight_percent}
+- inception_date: date - when the fund was launched
+- is_etf: boolean (true) - flag to distinguish from stocks
+
+**Relationships**: Associated with StockCache by symbol.
+
+### Entity: Recommendation (Backend computed daily)
+**Purpose**: Pre-computed ranking of top buy signals for the recommendations page
+**Key Fields**:
+- id: UUID - primary key
+- rank: integer - 1-100 ranking (1 = strongest buy signal)
+- symbol: string - ticker symbol
+- exchange: string - exchange code
+- name: string - company or ETF name
+- is_etf: boolean - true if ETF
+- industry: string - industry/sector classification
+- consolidated_signal: string - "Strong Buy" | "Buy"
+- signal_score: decimal - numeric score for ranking (0.2 to 1.0)
+- last_price: decimal - most recent closing price
+- computed_at: timestamp - when signal was computed
+- expires_at: timestamp - cache expiry (next trading day)
+
+**Relationships**: Referenced by industry filter queries.
+
+### Entity: IndustryClassification (Reference data)
+**Purpose**: Industry and sector classifications for filtering
+**Key Fields**:
+- id: string - classification ID
+- name: string - display name (e.g., "Technology/AI", "Healthcare")
+- type: string - "stock_industry" | "etf_category"
+- parent_id: string (optional) - for hierarchical categories
+
+**Relationships**: Referenced by Stock/ETF entities and filter queries.
+
+### Entity: UserSecurity (Supabase - extends profile)
+**Purpose**: Enhanced security settings for user accounts
+**Key Fields**:
+- user_id: UUID - FK to user profile
+- password_hash: string - bcrypt hashed password (handled by Supabase Auth)
+- email_verified: boolean - email verification status
+- email_verified_at: timestamp - when email was verified
+- two_factor_enabled: boolean - 2FA status
+- two_factor_secret: string (encrypted) - TOTP secret if 2FA enabled
+- failed_login_attempts: integer - consecutive failed attempts
+- locked_until: timestamp - account lock expiry (null if not locked)
+- last_password_change: timestamp - when password was last changed
+
+**Relationships**: Extends User profile.
+
+### Entity: UserSession (Supabase)
+**Purpose**: Track active user sessions for security management
+**Key Fields**:
+- id: UUID - session ID
+- user_id: UUID - FK to user
+- created_at: timestamp - session start
+- last_active_at: timestamp - last activity
+- expires_at: timestamp - session expiry (30 min inactivity)
+- ip_address: string - client IP
+- user_agent: string - browser/device info
+- is_revoked: boolean - manually revoked by user
+
+**Relationships**: Belongs to User.
 
 ## Key Interactions & Flows
 
@@ -442,6 +520,74 @@ Consolidated Signal (evidence-weighted):
 
 **Error Handling**: None (static content).
 
+### Flow: View Stock Recommendations (US10, FR-038 to FR-042)
+**Scenario**: User views the top 100 buy signals to discover investment opportunities
+**Trigger**: User navigates to `/recommendations` or clicks "Recommendations" in navigation
+
+1. Frontend requests `GET /api/recommendations?limit=100` from Python backend
+2. Backend returns pre-computed list of top 100 stocks/ETFs with Buy or Strong Buy signals
+3. List is pre-sorted by signal_score descending (strongest buy first)
+4. Frontend renders numbered list (1-100) with: rank, name, ticker, exchange, industry tag, ETF badge (if applicable), signal badge, score
+5. User can apply industry filters via sidebar or dropdown
+6. On filter change, frontend requests `GET /api/recommendations?limit=100&industries=technology,healthcare`
+7. Backend returns filtered list, re-ranked 1-N within the filter
+8. Clicking any entry navigates to `/stock/[symbol]`
+
+**Error Handling**:
+- Backend error -> Display "Recommendations temporarily unavailable"
+- Empty results after filter -> Display "No buy signals found in selected sectors"
+- Fewer than 100 results -> Display all available (e.g., 1-47)
+
+### Flow: View ETF Detail (US12, FR-049 to FR-053)
+**Scenario**: User views technical analysis for an ETF
+**Trigger**: User navigates to `/stock/[etf-symbol]` (e.g., `/stock/SPY`)
+
+1. Frontend detects ETF via `is_etf` flag in stock info response
+2. All standard stock flows apply (signals, indicators, charts)
+3. Additionally, frontend displays ETF-specific section:
+   - Expense ratio with explanation
+   - AUM (assets under management)
+   - Fund category badge
+   - Top 10 holdings (if available)
+4. ETF badge displayed prominently in header
+5. Portfolio/watchlist operations work identically to stocks
+
+**Error Handling**:
+- ETF-specific data unavailable -> Display available stock-like data with note "ETF details unavailable"
+- Holdings data unavailable -> Omit holdings section
+
+### Flow: Enhanced Account Security (US13, FR-055 to FR-063)
+**Scenario**: User creates account with security requirements
+**Trigger**: User submits signup form
+
+1. Frontend validates password against strength requirements:
+   - Minimum 8 characters
+   - At least one uppercase, one lowercase, one number, one special character
+   - Displays strength meter (weak/fair/good/strong)
+2. If valid, frontend submits to Supabase Auth
+3. Supabase creates user and triggers email verification
+4. User receives verification email with 24-hour expiry link
+5. Until verified, user can access limited features (search, view stocks) but not protected features (portfolio, watchlist)
+6. On successful verification, full access granted
+
+**Session Management**:
+1. After login, session created with 30-minute inactivity timeout
+2. Each API request updates `last_active_at`
+3. If `last_active_at` > 30 minutes ago, session expired
+4. User must re-authenticate to continue
+
+**Security Settings Page**:
+1. User navigates to `/settings/security`
+2. Frontend displays: current sessions, 2FA toggle, password change form
+3. User can revoke sessions, enable 2FA (TOTP setup with QR code)
+4. Password changes require current password confirmation
+
+**Error Handling**:
+- Weak password -> Inline validation errors before submit
+- Email already registered -> Friendly error with login link
+- Verification link expired -> Option to resend verification
+- Too many failed logins -> Account locked message with unlock instructions
+
 ## Project Structure
 
 ```
@@ -459,31 +605,41 @@ technical-analysis-stock-investment/
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── layout.tsx              # Root layout (nav, footer, providers)
-│   │   │   ├── page.tsx                # Homepage (search, featured stocks)
+│   │   │   ├── page.tsx                # Homepage (search, featured stocks/ETFs)
 │   │   │   ├── stock/
 │   │   │   │   └── [symbol]/
-│   │   │   │       └── page.tsx        # Stock detail page
+│   │   │   │       └── page.tsx        # Stock/ETF detail page
+│   │   │   ├── recommendations/
+│   │   │   │   └── page.tsx            # Top 100 buy signals with industry filters
 │   │   │   ├── portfolio/
-│   │   │   │   └── page.tsx            # Portfolio dashboard
+│   │   │   │   └── page.tsx            # Portfolio dashboard (stocks + ETFs)
 │   │   │   ├── watchlist/
-│   │   │   │   └── page.tsx            # Watchlist page
+│   │   │   │   └── page.tsx            # Watchlist page (stocks + ETFs)
 │   │   │   ├── methodology/
 │   │   │   │   ├── page.tsx            # Methodology overview
 │   │   │   │   └── [indicator]/
 │   │   │   │       └── page.tsx        # Individual indicator page
 │   │   │   ├── settings/
-│   │   │   │   └── page.tsx            # User settings (currency, notifications)
+│   │   │   │   ├── page.tsx            # User settings (currency, notifications)
+│   │   │   │   └── security/
+│   │   │   │       └── page.tsx        # Security settings (password, 2FA, sessions)
 │   │   │   ├── auth/
 │   │   │   │   ├── login/
-│   │   │   │   │   └── page.tsx        # Login page
-│   │   │   │   └── signup/
-│   │   │   │       └── page.tsx        # Signup page
+│   │   │   │   │   └── page.tsx        # Login page with 2FA support
+│   │   │   │   ├── signup/
+│   │   │   │   │   └── page.tsx        # Signup page with password strength
+│   │   │   │   └── verify-email/
+│   │   │   │       └── page.tsx        # Email verification handler
 │   │   │   └── api/
 │   │   │       ├── search/
 │   │   │       │   └── route.ts        # Proxy to Python backend
 │   │   │       ├── stock/
 │   │   │       │   └── [...slug]/
 │   │   │       │       └── route.ts    # Proxy to Python backend
+│   │   │       ├── recommendations/
+│   │   │       │   └── route.ts        # Proxy to Python recommendations
+│   │   │       ├── industries/
+│   │   │       │   └── route.ts        # Proxy to Python industries list
 │   │   │       └── portfolio/
 │   │   │           └── import/
 │   │   │               └── route.ts    # Proxy CSV import to backend
@@ -496,7 +652,19 @@ technical-analysis-stock-investment/
 │   │   │   │   ├── ConsolidatedSignal.tsx    # Hero signal display
 │   │   │   │   ├── IndicatorCard.tsx          # Individual indicator section
 │   │   │   │   ├── FinancialMetrics.tsx       # Key financial data
-│   │   │   │   └── MarketStatus.tsx           # Exchange open/closed badge
+│   │   │   │   ├── MarketStatus.tsx           # Exchange open/closed badge
+│   │   │   │   ├── ETFMetrics.tsx             # ETF-specific: expense ratio, AUM, holdings
+│   │   │   │   └── ETFBadge.tsx               # Visual ETF identifier badge
+│   │   │   ├── recommendations/
+│   │   │   │   ├── RecommendationsList.tsx    # Numbered list of top 100 buy signals
+│   │   │   │   ├── RecommendationRow.tsx      # Single recommendation entry
+│   │   │   │   ├── IndustryFilter.tsx         # Sidebar/dropdown industry filter
+│   │   │   │   └── ETFOnlyToggle.tsx          # Toggle for ETF-only view
+│   │   │   ├── security/
+│   │   │   │   ├── PasswordStrength.tsx       # Password strength indicator
+│   │   │   │   ├── SessionList.tsx            # Active sessions with revoke option
+│   │   │   │   ├── TwoFactorSetup.tsx         # 2FA TOTP setup with QR code
+│   │   │   │   └── VerifyEmailBanner.tsx      # Reminder to verify email
 │   │   │   ├── charts/
 │   │   │   │   ├── PriceChart.tsx             # Main price chart (Lightweight Charts)
 │   │   │   │   ├── OscillatorChart.tsx        # Reusable sub-chart for RSI/Williams %R/MFI/ROC
@@ -526,10 +694,13 @@ technical-analysis-stock-investment/
 │   │   │   ├── api.ts                   # API client for Python backend
 │   │   │   └── formatters.ts            # Number/currency/date formatting
 │   │   ├── hooks/
-│   │   │   ├── useStock.ts              # Fetch stock data
+│   │   │   ├── useStock.ts              # Fetch stock/ETF data
 │   │   │   ├── usePortfolio.ts          # Portfolio CRUD operations
 │   │   │   ├── useWatchlist.ts          # Watchlist operations
-│   │   │   └── useNotifications.ts      # Real-time notifications
+│   │   │   ├── useNotifications.ts      # Real-time notifications
+│   │   │   ├── useRecommendations.ts    # Top 100 buy signals with filtering
+│   │   │   ├── useIndustryFilter.ts     # Industry/sector filter state
+│   │   │   └── useSecurity.ts           # Security settings (sessions, 2FA)
 │   │   ├── types/
 │   │   │   └── index.ts                 # TypeScript interfaces
 │   │   └── content/
@@ -554,23 +725,31 @@ technical-analysis-stock-investment/
 │   ├── main.py                          # FastAPI app entry point
 │   ├── config.py                        # Configuration (cache TTL, indicator params)
 │   ├── routers/
-│   │   ├── search.py                    # /api/search endpoints
-│   │   ├── stock.py                     # /api/stock endpoints
+│   │   ├── search.py                    # /api/search endpoints (stocks + ETFs)
+│   │   ├── stock.py                     # /api/stock endpoints (stocks + ETFs)
 │   │   ├── portfolio.py                 # /api/portfolio endpoints
-│   │   └── exchanges.py                 # /api/exchanges endpoints
+│   │   ├── exchanges.py                 # /api/exchanges endpoints
+│   │   ├── recommendations.py           # /api/recommendations endpoints
+│   │   └── industries.py                # /api/industries endpoints
 │   ├── services/
-│   │   ├── data_fetcher.py              # yfinance wrapper with caching
+│   │   ├── data_fetcher.py              # yfinance wrapper with caching (stocks + ETFs)
+│   │   ├── etf_fetcher.py               # ETF-specific data: expense ratio, AUM, holdings
 │   │   ├── indicator_calculator.py      # Technical indicator computation
 │   │   ├── signal_engine.py             # Signal rules + consolidated logic
-│   │   ├── search_service.py            # Fuzzy search index
+│   │   ├── search_service.py            # Fuzzy search index (stocks + ETFs)
+│   │   ├── recommendations_service.py   # Top 100 buy signals computation and ranking
+│   │   ├── industry_service.py          # Industry/sector classification
 │   │   ├── csv_parser.py               # CSV import parsing + validation
 │   │   ├── notification_service.py      # Signal change detection + dispatch
 │   │   └── currency_service.py          # Exchange rate lookups
 │   ├── models/
 │   │   ├── stock.py                     # Stock data models (Pydantic)
+│   │   ├── etf.py                       # ETF-specific models (expense, AUM, holdings)
 │   │   ├── indicator.py                 # Indicator result models
 │   │   ├── signal.py                    # Signal models
-│   │   └── portfolio.py                 # Portfolio import models
+│   │   ├── portfolio.py                 # Portfolio import models
+│   │   ├── recommendation.py            # Recommendation ranking models
+│   │   └── industry.py                  # Industry/sector classification models
 │   ├── scheduler/
 │   │   └── jobs.py                      # Scheduled tasks (signal updates, notifications)
 │   ├── cache/

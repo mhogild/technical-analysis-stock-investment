@@ -26,6 +26,22 @@ export interface SearchResult {
   exchange: string;
   country: string;
   market_cap: number | null;
+  is_etf?: boolean;
+}
+
+// ETF-specific types
+export interface ETFHolding {
+  symbol: string;
+  name: string;
+  weight_percent: number;
+}
+
+export interface ETFDetails {
+  expense_ratio: number | null;
+  aum: number | null;
+  fund_category: string | null;
+  top_holdings: ETFHolding[];
+  inception_date: string | null;
 }
 
 // Stock info
@@ -50,6 +66,9 @@ export interface Stock {
   market_status: MarketStatus;
   last_updated: string;
   is_halted: boolean;
+  // ETF-specific fields
+  is_etf?: boolean;
+  etf_details?: ETFDetails;
 }
 
 // Financial metrics
@@ -116,6 +135,7 @@ export interface PortfolioPosition {
   gain_loss?: number;
   gain_loss_percent?: number;
   signal?: ConsolidatedSignalLevel;
+  is_etf?: boolean;
 }
 
 // Watchlist
@@ -129,6 +149,7 @@ export interface WatchlistEntry {
   daily_change_percent?: number;
   signal?: ConsolidatedSignalLevel;
   notifications_enabled: boolean;
+  is_etf?: boolean;
 }
 
 // Notifications
@@ -145,6 +166,46 @@ export interface Notification {
   created_at: string;
 }
 
+// Recommendations
+export interface Recommendation {
+  rank: number;
+  symbol: string;
+  name: string;
+  exchange: string;
+  is_etf: boolean;
+  industry: string | null;
+  consolidated_signal: "Strong Buy" | "Buy";
+  signal_score: number;
+  last_price: number;
+  daily_change_percent?: number;
+  market_cap?: number | null;
+}
+
+export interface Industry {
+  id: string;
+  name: string;
+  type: "stock_industry" | "etf_category";
+  icon?: string;
+  count?: number;
+}
+
+// Security types
+export interface UserSession {
+  id: string;
+  created_at: string;
+  last_active_at: string;
+  ip_address: string;
+  user_agent: string;
+  is_current: boolean;
+}
+
+export interface SecuritySettings {
+  email_verified: boolean;
+  email_verified_at: string | null;
+  two_factor_enabled: boolean;
+  last_password_change: string | null;
+}
+
 // API response wrappers
 export interface StockIndicatorsResponse {
   symbol: string;
@@ -158,4 +219,16 @@ export interface StockSignalResponse {
   consolidated: ConsolidatedSignal;
   monthly_trend: MonthlyTrendSignal;
   last_updated: string;
+}
+
+export interface RecommendationsResponse {
+  items: Recommendation[];
+  total_count: number;
+  filtered_by: string[];
+  last_updated: string;
+}
+
+export interface IndustriesResponse {
+  stock_industries: Industry[];
+  etf_categories: Industry[];
 }

@@ -51,6 +51,15 @@ export default function Navbar() {
 
           <div className="hidden md:flex items-center gap-1">
             <Link
+              href="/recommendations"
+              className="px-4 py-2 text-sm font-medium text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg transition-all flex items-center gap-1.5"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+              </svg>
+              Top Picks
+            </Link>
+            <Link
               href="/portfolio"
               className="px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all"
             >
@@ -161,6 +170,15 @@ export default function Navbar() {
             <div className="py-2">
               <SearchBar />
             </div>
+            <Link
+              href="/recommendations"
+              className="flex items-center gap-2 py-2.5 px-3 text-sm font-medium text-emerald-400 hover:bg-emerald-500/10 rounded-lg"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+              </svg>
+              Top Picks
+            </Link>
             <Link
               href="/portfolio"
               className="block py-2.5 px-3 text-sm text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg"

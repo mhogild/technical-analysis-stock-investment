@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import PasswordStrength, { validatePassword } from "@/components/security/PasswordStrength";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -17,13 +18,15 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setError("Password must meet all requirements: 8+ characters, uppercase, lowercase, number, and special character");
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
 
@@ -90,8 +93,9 @@ export default function SignupPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="At least 6 characters"
+            placeholder="Create a strong password"
           />
+          {password && <PasswordStrength password={password} className="mt-3" />}
         </div>
 
         <div>
@@ -111,8 +115,8 @@ export default function SignupPage() {
 
         <button
           type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50"
+          disabled={loading || !validatePassword(password).isValid || password !== confirmPassword}
+          className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Creating account..." : "Sign up"}
         </button>
