@@ -189,3 +189,12 @@ out/
 
 # Database cache
 *.db
+
+# Backend cache
+backend/cache/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Windows artifacts
+nul
