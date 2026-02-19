@@ -1,7 +1,7 @@
 "use client";
 
 import SignalBadge from "@/components/ui/SignalBadge";
-import type { TechnicalIndicator } from "@/types";
+import type { TechnicalIndicator, IndicatorChartData } from "@/types";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
@@ -20,6 +20,18 @@ interface IndicatorCardProps {
   indicator: TechnicalIndicator;
 }
 
+// Transform chart data for MACD component
+function getMACDData(chartData: IndicatorChartData) {
+  return {
+    dates: chartData.dates,
+    values: chartData.values as (number | null)[],
+    extra_series: {
+      signal_line: (chartData.extra_series?.signal_line || []) as (number | null)[],
+      histogram: (chartData.extra_series?.histogram || []) as (number | null)[],
+    },
+  };
+}
+
 export default function IndicatorCard({ indicator }: IndicatorCardProps) {
   const methodologySlug = indicator.name.replace(/_/g, "-");
 
@@ -33,7 +45,7 @@ export default function IndicatorCard({ indicator }: IndicatorCardProps) {
       {/* Chart */}
       <div className="mb-4">
         {indicator.name === "macd" ? (
-          <MACDChart data={indicator.chart_data} />
+          <MACDChart data={getMACDData(indicator.chart_data)} />
         ) : indicator.name === "adx" ? (
           <ADXGauge value={indicator.current_value} />
         ) : indicator.name === "atr" ? (

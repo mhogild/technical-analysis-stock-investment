@@ -84,7 +84,7 @@ export default function SearchBar() {
       {isOpen && (
         <div className="absolute z-50 mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 shadow-xl shadow-black/20 overflow-hidden">
           {results.length === 0 ? (
-            <div className="p-4 text-sm text-slate-400">No results found. Try searching by company name (e.g. "Apple", "Microsoft")</div>
+            <div className="p-4 text-sm text-slate-400">No results found. Try searching by company name (e.g. &quot;Apple&quot;, &quot;Microsoft&quot;)</div>
           ) : (
             <ul className="max-h-80 overflow-y-auto py-1">
               {results.map((r) => (

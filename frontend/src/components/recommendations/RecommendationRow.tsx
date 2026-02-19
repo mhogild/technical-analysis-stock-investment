@@ -129,14 +129,16 @@ export default function RecommendationRow({
         </p>
 
         {/* Industry Tag */}
-        <div className="mt-2">
-          <span className={`
-            inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border
-            ${getIndustryColor(industry)}
-          `}>
-            {industry}
-          </span>
-        </div>
+        {industry && (
+          <div className="mt-2">
+            <span className={`
+              inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border
+              ${getIndustryColor(industry)}
+            `}>
+              {industry}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Signal Score Visualization */}

@@ -1,32 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+import { getRecommendations } from "@/lib/services/recommendationsService";
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const queryString = searchParams.toString();
+    const limit = parseInt(searchParams.get("limit") || "100", 10);
+    const industriesParam = searchParams.get("industries");
+    const etfOnly = searchParams.get("etf_only") === "true";
 
-    const url = `${BACKEND_URL}/api/recommendations${queryString ? `?${queryString}` : ""}`;
+    const industries = industriesParam
+      ? industriesParam.split(",").filter((i) => i.trim())
+      : null;
 
-    const response = await fetch(url, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      // Cache for 5 minutes on the server
-      next: { revalidate: 300 },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return NextResponse.json(
-        { error: "Failed to fetch recommendations", details: errorText },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data);
+    const recommendations = await getRecommendations(limit, industries, etfOnly);
+    return NextResponse.json(recommendations);
   } catch (error) {
     console.error("Recommendations API error:", error);
     return NextResponse.json(

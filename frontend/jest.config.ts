@@ -14,8 +14,8 @@ const config: Config = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
-  setupFilesAfterSetup: ["@testing-library/jest-dom"],
-  testPathPattern: "__tests__/.*\\.test\\.tsx?$",
+  setupFilesAfterEnv: ["@testing-library/jest-dom"],
+  testMatch: ["**/__tests__/**/*.test.ts?(x)"],
 };
 
 export default config;

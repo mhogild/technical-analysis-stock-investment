@@ -34,9 +34,9 @@ export default function ETFMetrics({ details, className = "" }: ETFMetricsProps)
               <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                 Expense Ratio
               </span>
-              <HelpTooltip
-                content="Annual fee charged by the fund, expressed as a percentage. Lower is better - under 0.20% is considered very low."
-              />
+              <HelpTooltip>
+                Annual fee charged by the fund, expressed as a percentage. Lower is better - under 0.20% is considered very low.
+              </HelpTooltip>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold font-mono text-slate-100">
@@ -62,9 +62,9 @@ export default function ETFMetrics({ details, className = "" }: ETFMetricsProps)
               <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                 Assets Under Mgmt
               </span>
-              <HelpTooltip
-                content="Total value of all assets in the fund. Larger funds typically have better liquidity and tighter bid-ask spreads."
-              />
+              <HelpTooltip>
+                Total value of all assets in the fund. Larger funds typically have better liquidity and tighter bid-ask spreads.
+              </HelpTooltip>
             </div>
             <span className="text-2xl font-bold font-mono text-slate-100">
               {aum !== null ? formatMarketCap(aum) : "—"}
@@ -77,9 +77,9 @@ export default function ETFMetrics({ details, className = "" }: ETFMetricsProps)
               <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                 Category
               </span>
-              <HelpTooltip
-                content="The primary investment focus or strategy of this ETF."
-              />
+              <HelpTooltip>
+                The primary investment focus or strategy of this ETF.
+              </HelpTooltip>
             </div>
             <span className="text-lg font-semibold text-slate-100">
               {fund_category || "—"}
@@ -92,9 +92,9 @@ export default function ETFMetrics({ details, className = "" }: ETFMetricsProps)
               <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                 Inception
               </span>
-              <HelpTooltip
-                content="When the fund was first launched. Older funds have longer track records."
-              />
+              <HelpTooltip>
+                When the fund was first launched. Older funds have longer track records.
+              </HelpTooltip>
             </div>
             <span className="text-lg font-semibold text-slate-100">
               {inception_date ? new Date(inception_date).toLocaleDateString("en-US", {
