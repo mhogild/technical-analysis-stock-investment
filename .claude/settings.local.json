@@ -27,7 +27,8 @@
       "Bash(del \"c:\\\\Users\\\\magnu\\\\Documents\\\\GitHub\\\\technical-analysis-stock-investment\\\\backend\\\\cache\\\\stock_data.db\")",
       "Bash(dir:*)",
       "Bash(taskkill:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(netstat:*)"
     ]
   }
 }
