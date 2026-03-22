@@ -28,7 +28,9 @@
       "Bash(dir:*)",
       "Bash(taskkill:*)",
       "Bash(findstr:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(ls:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
