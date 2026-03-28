@@ -66,7 +66,7 @@ The user can view their real Saxo Bank portfolio and market data within the exis
 |----------|-----------|---------|
 | Backend handles Saxo API calls | Keep secrets server-side, centralize token refresh | — Pending |
 | Start with SIM environment | Safe testing without real money, identical API | — Pending |
-| Supplement Yahoo Finance, don't replace | Yahoo covers non-Saxo instruments, Saxo adds real portfolio data | — Pending |
+| Replace Yahoo Finance with Saxo as primary data source | User wants single data source from their actual broker; Yahoo Finance to be removed | — Pending |
 | OAuth flow via backend redirect | Secure token exchange, refresh tokens stored server-side | — Pending |
 | Polling over WebSocket initially | Simpler implementation, add streaming as v2 enhancement | — Pending |
 
