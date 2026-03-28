@@ -31,7 +31,8 @@
       "Bash(netstat:*)",
       "Bash(ls:*)",
       "Bash(npm run build:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(node:*)"
     ]
   }
 }
