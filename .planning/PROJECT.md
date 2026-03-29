@@ -25,7 +25,7 @@ The user can view their real Saxo Bank portfolio and market data within the exis
 
 ### Active
 
-- [ ] Saxo OpenAPI OAuth 2.0 authentication flow
+- [x] Saxo OpenAPI OAuth 2.0 authentication flow — Validated in Phase 1: auth-infrastructure
 - [ ] Fetch and display real Saxo portfolio positions
 - [ ] Fetch real-time market data from Saxo for held instruments
 - [ ] Merge Saxo positions with existing manual portfolio view
@@ -64,11 +64,13 @@ The user can view their real Saxo Bank portfolio and market data within the exis
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Backend handles Saxo API calls | Keep secrets server-side, centralize token refresh | — Pending |
-| Start with SIM environment | Safe testing without real money, identical API | — Pending |
+| Backend handles Saxo API calls | Keep secrets server-side, centralize token refresh | Implemented Phase 1 |
+| Start with SIM environment | Safe testing without real money, identical API | Implemented Phase 1 |
 | Replace Yahoo Finance with Saxo as primary data source | User wants single data source from their actual broker; Yahoo Finance to be removed | — Pending |
-| OAuth flow via backend redirect | Secure token exchange, refresh tokens stored server-side | — Pending |
+| OAuth flow via backend redirect | Secure token exchange, refresh tokens stored server-side | Implemented Phase 1 |
 | Polling over WebSocket initially | Simpler implementation, add streaming as v2 enhancement | — Pending |
+| Fernet encryption for token storage | Standard symmetric encryption, key in env var | Implemented Phase 1 |
+| Circuit breaker after 2 refresh failures | Prevents hammering Saxo API with invalid tokens | Implemented Phase 1 |
 
 ## Evolution
 
@@ -88,4 +90,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 after initialization*
+*Last updated: 2026-03-29 after Phase 1 completion — auth infrastructure built, pending human verification with Saxo SIM credentials*
