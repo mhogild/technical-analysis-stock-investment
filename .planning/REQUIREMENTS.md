@@ -27,7 +27,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Instrument Mapping
 
 - [ ] **INST-01**: Backend resolves Saxo Uic identifiers to Yahoo Finance tickers via exchange-suffix mapping
-- [ ] **INST-02**: Resolved mappings are persisted in Supabase for reuse
+- [x] **INST-02**: Resolved mappings are persisted in Supabase for reuse
 - [ ] **INST-03**: Unresolved instruments display Saxo data with a visual indicator (no TA signals)
 
 ### Frontend Integration
@@ -42,7 +42,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **INFRA-01**: Supabase tables created: `saxo_tokens`, `saxo_oauth_state`, `saxo_instrument_map`
 - [x] **INFRA-02**: Environment variables configured: `SAXO_APP_KEY`, `SAXO_APP_SECRET`, `SAXO_REDIRECT_URI`, `SAXO_ENVIRONMENT`, `SAXO_TOKEN_ENCRYPTION_KEY`
-- [ ] **INFRA-03**: Separate Saxo cache layer with appropriate TTLs (60s positions, 15s quotes, 24h metadata)
+- [x] **INFRA-03**: Separate Saxo cache layer with appropriate TTLs (60s positions, 15s quotes, 24h metadata)
 - [ ] **INFRA-04**: Rate limiting respected: 120 req/min/session, exponential backoff on 429s
 - [ ] **INFRA-05**: Saxo API error responses normalized to typed application exceptions
 
@@ -94,9 +94,9 @@ Deferred to future release. Tracked but not in current roadmap.
 | PORT-04 | Phase 2 | Pending |
 | PORT-05 | Phase 2 | Pending |
 | INST-01 | Phase 2 | Pending |
-| INST-02 | Phase 2 | Pending |
+| INST-02 | Phase 2 | Complete |
 | INST-03 | Phase 2 | Pending |
-| INFRA-03 | Phase 2 | Pending |
+| INFRA-03 | Phase 2 | Complete |
 | UI-01 | Phase 3 | Pending |
 | UI-02 | Phase 3 | Pending |
 | UI-03 | Phase 3 | Pending |

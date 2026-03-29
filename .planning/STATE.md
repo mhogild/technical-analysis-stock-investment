@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-last_updated: "2026-03-29T10:56:17.266Z"
+status: Executing Phase 02
+last_updated: "2026-03-29T17:28:43.645Z"
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 9
+  completed_plans: 6
 ---
 
 # Project State
@@ -17,18 +17,24 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-03-28)
 **Core value:** User can view their real Saxo Bank portfolio alongside existing TA signals
-**Current focus:** Phase 01 — auth-infrastructure
+**Current focus:** Phase 02 — portfolio-data
 
 ## Current Status
 
-- Phase: 1 - Auth & Infrastructure
-- Status: In progress (plan 01-05 complete — all 5 plans done)
+- Phase: 2 - Portfolio Data
+- Status: In progress (plan 02-01 complete — 1/4 plans done)
 - Blockers: None
 
 ## Phase Progress
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | Auth & Infrastructure | In progress (5/5 plans complete) |
-| 2 | Portfolio Data | Not started |
+| 1 | Auth & Infrastructure | Complete (5/5 plans) |
+| 2 | Portfolio Data | In progress (1/4 plans complete) |
 | 3 | Frontend Integration | Not started |
+
+## Key Decisions (Phase 2)
+
+- SaxoCache uses same RLock+dict pattern as StockCache; primary keys are user_id or str(uic)
+- saxo_instrument_map composite PK (uic, asset_type) supports same Uic in multiple asset classes
+- git add -f required for backend/cache/ due to .gitignore rule (same as stock_cache.py)
