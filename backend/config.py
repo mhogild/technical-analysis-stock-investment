@@ -49,3 +49,37 @@ SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASS = os.getenv("SMTP_PASS", "")
+
+# Saxo OpenAPI
+SAXO_APP_KEY = os.getenv("SAXO_APP_KEY", "")
+SAXO_APP_SECRET = os.getenv("SAXO_APP_SECRET", "")
+SAXO_REDIRECT_URI = os.getenv("SAXO_REDIRECT_URI", "http://localhost:8000/api/saxo/auth/callback")
+SAXO_ENVIRONMENT = os.getenv("SAXO_ENVIRONMENT", "sim")
+SAXO_TOKEN_ENCRYPTION_KEY = os.getenv("SAXO_TOKEN_ENCRYPTION_KEY", "")
+SAXO_FRONTEND_REDIRECT_URL = os.getenv("SAXO_FRONTEND_REDIRECT_URL", "http://localhost:3000/settings?saxo=connected")
+
+# Saxo URLs (derived from SAXO_ENVIRONMENT)
+SAXO_BASE_URL = (
+    "https://gateway.saxobank.com/sim/openapi"
+    if SAXO_ENVIRONMENT == "sim"
+    else "https://gateway.saxobank.com/openapi"
+)
+SAXO_AUTH_URL = (
+    "https://sim.logonvalidation.net/authorize"
+    if SAXO_ENVIRONMENT == "sim"
+    else "https://live.logonvalidation.net/authorize"
+)
+SAXO_TOKEN_URL = (
+    "https://sim.logonvalidation.net/token"
+    if SAXO_ENVIRONMENT == "sim"
+    else "https://live.logonvalidation.net/token"
+)
+
+# Saxo cache TTLs (seconds)
+CACHE_TTL_SAXO_POSITIONS = 60
+CACHE_TTL_SAXO_QUOTES = 15
+CACHE_TTL_SAXO_INSTRUMENTS = 86400
+
+# Saxo token refresh settings
+SAXO_REFRESH_BUFFER_SECONDS = 300
+SAXO_CIRCUIT_BREAKER_LIMIT = 2
