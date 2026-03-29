@@ -40,8 +40,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: Supabase tables created: `saxo_tokens`, `saxo_oauth_state`, `saxo_instrument_map`
-- [ ] **INFRA-02**: Environment variables configured: `SAXO_APP_KEY`, `SAXO_APP_SECRET`, `SAXO_REDIRECT_URI`, `SAXO_ENVIRONMENT`, `SAXO_TOKEN_ENCRYPTION_KEY`
+- [x] **INFRA-01**: Supabase tables created: `saxo_tokens`, `saxo_oauth_state`, `saxo_instrument_map`
+- [x] **INFRA-02**: Environment variables configured: `SAXO_APP_KEY`, `SAXO_APP_SECRET`, `SAXO_REDIRECT_URI`, `SAXO_ENVIRONMENT`, `SAXO_TOKEN_ENCRYPTION_KEY`
 - [ ] **INFRA-03**: Separate Saxo cache layer with appropriate TTLs (60s positions, 15s quotes, 24h metadata)
 - [ ] **INFRA-04**: Rate limiting respected: 120 req/min/session, exponential backoff on 429s
 - [ ] **INFRA-05**: Saxo API error responses normalized to typed application exceptions
@@ -78,8 +78,8 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Complete |
+| INFRA-02 | Phase 1 | Complete |
 | AUTH-01 | Phase 1 | Pending |
 | AUTH-02 | Phase 1 | Pending |
 | AUTH-03 | Phase 1 | Pending |
