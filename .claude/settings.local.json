@@ -38,7 +38,10 @@
       "Bash(wc -l .planning/research/*.md)",
       "Skill(gsd:plan-phase)",
       "Skill(gsd:execute-phase)",
-      "Skill(gsd:discuss-phase)"
+      "Skill(gsd:discuss-phase)",
+      "Bash(git stash:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
