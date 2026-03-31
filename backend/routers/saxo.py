@@ -12,19 +12,34 @@ from config import (
     SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY,
 )
-from models.saxo import SaxoAuthURL, SaxoConnectionStatus, SaxoDisconnectResponse
+from models.saxo import (
+    SaxoAuthURL,
+    SaxoConnectionStatus,
+    SaxoDisconnectResponse,
+    SaxoPositionsResponse,
+    SaxoBalance,
+    SaxoPerformance,
+)
 from services.saxo_token_service import SaxoTokenService
+from services.saxo_portfolio_service import SaxoPortfolioService
+from services.saxo_client import SaxoClient
 from services.saxo_exceptions import (
     SaxoNotConnectedError,
     SaxoCircuitBreakerOpenError,
     SaxoOAuthError,
+    SaxoAuthError,
+    SaxoRateLimitError,
+    SaxoAPIError,
 )
+from cache.saxo_cache import SaxoCache
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/saxo", tags=["saxo"])
 
 token_service = SaxoTokenService()
+saxo_cache = SaxoCache()
+portfolio_service = SaxoPortfolioService(token_service=token_service, cache=saxo_cache)
 
 
 async def _get_user_id(request: Request) -> str:
