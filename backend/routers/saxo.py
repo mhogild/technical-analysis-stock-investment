@@ -141,3 +141,23 @@ async def saxo_status(request: Request):
         saxo_client_key=record.saxo_client_key,
         circuit_breaker_tripped=record.consecutive_refresh_failures >= 2,
     )
+
+
+@router.get("/portfolio/positions", response_model=SaxoPositionsResponse)
+async def get_positions(request: Request):
+    """Fetch Saxo portfolio positions with instrument mapping."""
+    user_id = await _get_user_id(request)
+    saxo_client = SaxoClient(request.app.state.saxo_http_client)
+
+    try:
+        return await portfolio_service.get_positions(user_id, saxo_client)
+    except SaxoNotConnectedError:
+        raise HTTPException(status_code=401, detail="Saxo account not connected")
+    except SaxoCircuitBreakerOpenError:
+        raise HTTPException(status_code=503, detail="Saxo connection unstable, re-authentication required")
+    except SaxoAuthError:
+        raise HTTPException(status_code=401, detail="Saxo authentication failed — token may be expired")
+    except SaxoRateLimitError as e:
+        raise HTTPException(status_code=429, detail=f"Saxo rate limit hit, retry after {e.retry_after}s")
+    except SaxoAPIError as e:
+        raise HTTPException(status_code=502, detail=f"Saxo API error: {e.message}")
