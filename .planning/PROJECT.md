@@ -26,10 +26,10 @@ The user can view their real Saxo Bank portfolio and market data within the exis
 ### Active
 
 - [x] Saxo OpenAPI OAuth 2.0 authentication flow — Validated in Phase 1: auth-infrastructure
-- [ ] Fetch and display real Saxo portfolio positions
-- [ ] Fetch real-time market data from Saxo for held instruments
+- [x] Fetch and display real Saxo portfolio positions — Validated in Phase 2: portfolio-data
+- [x] Fetch real-time market data from Saxo for held instruments — Validated in Phase 2: portfolio-data
 - [ ] Merge Saxo positions with existing manual portfolio view
-- [ ] Display Saxo account balance and performance metrics
+- [x] Display Saxo account balance and performance metrics — Validated in Phase 2: portfolio-data
 - [ ] Apply existing technical analysis signals to Saxo-held instruments
 - [ ] Sync watchlist with Saxo instruments
 
@@ -68,6 +68,8 @@ The user can view their real Saxo Bank portfolio and market data within the exis
 | Start with SIM environment | Safe testing without real money, identical API | Implemented Phase 1 |
 | Replace Yahoo Finance with Saxo as primary data source | User wants single data source from their actual broker; Yahoo Finance to be removed | — Pending |
 | OAuth flow via backend redirect | Secure token exchange, refresh tokens stored server-side | Implemented Phase 1 |
+| Instrument mapping via exchange-suffix dict | 20 Saxo exchanges mapped to Yahoo Finance suffixes; unknown exchanges degrade gracefully | Implemented Phase 2 |
+| SaxoPortfolioService per-request SaxoClient | Shared httpx.AsyncClient, per-request SaxoClient construction | Implemented Phase 2 |
 | Polling over WebSocket initially | Simpler implementation, add streaming as v2 enhancement | — Pending |
 | Fernet encryption for token storage | Standard symmetric encryption, key in env var | Implemented Phase 1 |
 | Circuit breaker after 2 refresh failures | Prevents hammering Saxo API with invalid tokens | Implemented Phase 1 |
