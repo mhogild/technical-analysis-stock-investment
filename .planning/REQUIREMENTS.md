@@ -26,9 +26,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Instrument Mapping
 
-- [ ] **INST-01**: Backend resolves Saxo Uic identifiers to Yahoo Finance tickers via exchange-suffix mapping
+- [x] **INST-01**: Backend resolves Saxo Uic identifiers to Yahoo Finance tickers via exchange-suffix mapping
 - [x] **INST-02**: Resolved mappings are persisted in Supabase for reuse
-- [ ] **INST-03**: Unresolved instruments display Saxo data with a visual indicator (no TA signals)
+- [x] **INST-03**: Unresolved instruments display Saxo data with a visual indicator (no TA signals)
 
 ### Frontend Integration
 
@@ -93,9 +93,9 @@ Deferred to future release. Tracked but not in current roadmap.
 | PORT-03 | Phase 2 | Pending |
 | PORT-04 | Phase 2 | Pending |
 | PORT-05 | Phase 2 | Pending |
-| INST-01 | Phase 2 | Pending |
+| INST-01 | Phase 2 | Complete |
 | INST-02 | Phase 2 | Complete |
-| INST-03 | Phase 2 | Pending |
+| INST-03 | Phase 2 | Complete |
 | INFRA-03 | Phase 2 | Complete |
 | UI-01 | Phase 3 | Pending |
 | UI-02 | Phase 3 | Pending |
