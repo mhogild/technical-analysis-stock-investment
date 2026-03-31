@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Executing Phase 02
-last_updated: "2026-03-31T18:39:15Z"
+last_updated: "2026-03-31T19:10:00Z"
 progress:
   total_phases: 3
   completed_phases: 1
@@ -22,7 +22,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Status
 
 - Phase: 2 - Portfolio Data
-- Status: In progress (plan 02-02 complete — 2/4 plans done)
+- Status: In progress (plans 02-01, 02-02, 02-03 complete — 3/4 plans done)
 - Blockers: None
 
 ## Phase Progress
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 | Phase | Name | Status |
 |-------|------|--------|
 | 1 | Auth & Infrastructure | Complete (5/5 plans) |
-| 2 | Portfolio Data | In progress (2/4 plans complete) |
+| 2 | Portfolio Data | In progress (3/4 plans complete) |
 | 3 | Frontend Integration | Not started |
 
 ## Key Decisions (Phase 2)
@@ -40,4 +40,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 - git add -f required for backend/cache/ due to .gitignore rule (same as stock_cache.py)
 - SaxoInstrumentMapper uses single batch Saxo API call (not N+1) for all unresolved uics
 - Unknown ExchangeId produces mapped=False without exception; caller receives Saxo data intact
-- Stopped at: Completed 02-02-PLAN.md (SaxoInstrumentMapper service)
+- SaxoPortfolioService uses SaxoClient per-method (not stored on instance) for shared httpx.AsyncClient
+- get_performance derives change_today_percent from balance endpoint (analytics unavailable on SIM)
+- Empty portfolio returns valid SaxoPositionsResponse with empty list, not error
+- Stopped at: Completed 02-03-PLAN.md (SaxoPortfolioService)

@@ -18,11 +18,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Account & Portfolio Data
 
-- [ ] **PORT-01**: Backend fetches Saxo client info and account list via bootstrap sequence
-- [ ] **PORT-02**: User can view their Saxo portfolio positions (stocks and ETFs)
-- [ ] **PORT-03**: User can view their Saxo account balance and cash available
-- [ ] **PORT-04**: User can view account performance metrics from Saxo
-- [ ] **PORT-05**: Saxo positions display current market price and P&L
+- [x] **PORT-01**: Backend fetches Saxo client info and account list via bootstrap sequence
+- [x] **PORT-02**: User can view their Saxo portfolio positions (stocks and ETFs)
+- [x] **PORT-03**: User can view their Saxo account balance and cash available
+- [x] **PORT-04**: User can view account performance metrics from Saxo
+- [x] **PORT-05**: Saxo positions display current market price and P&L
 
 ### Instrument Mapping
 
@@ -88,11 +88,11 @@ Deferred to future release. Tracked but not in current roadmap.
 | AUTH-06 | Phase 1 | Pending |
 | INFRA-04 | Phase 1 | Pending |
 | INFRA-05 | Phase 1 | Pending |
-| PORT-01 | Phase 2 | Pending |
-| PORT-02 | Phase 2 | Pending |
-| PORT-03 | Phase 2 | Pending |
-| PORT-04 | Phase 2 | Pending |
-| PORT-05 | Phase 2 | Pending |
+| PORT-01 | Phase 2 | Complete |
+| PORT-02 | Phase 2 | Complete |
+| PORT-03 | Phase 2 | Complete |
+| PORT-04 | Phase 2 | Complete |
+| PORT-05 | Phase 2 | Complete |
 | INST-01 | Phase 2 | Complete |
 | INST-02 | Phase 2 | Complete |
 | INST-03 | Phase 2 | Complete |
