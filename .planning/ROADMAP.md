@@ -10,6 +10,17 @@
 | 2 | Portfolio Data | Fetch and expose real Saxo account data — positions, balance, performance, and instrument mapping — through backend API | PORT-01, PORT-02, PORT-03, PORT-04, PORT-05, INST-01, INST-02, INST-03, INFRA-03 | 4 |
 | 3 | Frontend Integration | Surface Saxo data in the existing UI with TA signals, polling, and connection management | UI-01, UI-02, UI-03, UI-04, UI-05 | 5 |
 
+## Plan Progress
+
+| Phase | Plan | Title | Status |
+|-------|------|-------|--------|
+| 1 | 01-05 | All plans | Complete (2026-03-29) |
+| 2 | 02-01 | Saxo Cache, Pydantic Models, DB Migration | Complete (2026-03-29) |
+| 2 | 02-02 | Saxo Instrument Mapper Service | Complete (2026-03-31) |
+| 2 | 02-03 | Saxo Portfolio Service | Complete (2026-03-31) |
+| 2 | 02-04 | Saxo Portfolio Router | In Progress |
+| 3 | 03-xx | Frontend Integration | Not started |
+
 ## Phase Details
 
 ### Phase 1: Auth & Infrastructure
