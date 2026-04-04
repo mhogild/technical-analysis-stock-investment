@@ -41,7 +41,8 @@
       "Skill(gsd:discuss-phase)",
       "Bash(git stash:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(grep -h \"requirements:\" .planning/phases/03-frontend-integration/03-*-PLAN.md)"
     ]
   }
 }
