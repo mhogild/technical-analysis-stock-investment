@@ -232,3 +232,64 @@ export interface IndustriesResponse {
   stock_industries: Industry[];
   etf_categories: Industry[];
 }
+
+// Saxo Auth & Connection
+export interface SaxoConnectionStatus {
+  connected: boolean;
+  expires_at?: string;
+  saxo_client_key?: string;
+  circuit_breaker_tripped: boolean;
+}
+
+export interface SaxoAuthURL {
+  auth_url: string;
+}
+
+export interface SaxoDisconnectResponse {
+  disconnected: boolean;
+}
+
+// Saxo Portfolio
+export interface SaxoPosition {
+  position_id: string;
+  uic: number;
+  asset_type: string;
+  saxo_symbol: string;
+  description: string;
+  amount: number;
+  open_price: number;
+  current_price: number;
+  profit_loss: number;
+  profit_loss_base_currency: number;
+  market_value: number;
+  currency: string;
+  exposure_currency: string;
+  value_date?: string;
+  yahoo_ticker?: string;
+  mapped: boolean;
+}
+
+export interface SaxoPositionsResponse {
+  positions: SaxoPosition[];
+  mapped_count: number;
+  unmapped_count: number;
+}
+
+export interface SaxoBalance {
+  total_value: number;
+  cash_balance: number;
+  unrealized_positions_value: number;
+  currency: string;
+  margin_used: number;
+  margin_available: number;
+  change_today: number;
+}
+
+export interface SaxoPerformance {
+  total_value: number;
+  cash_balance: number;
+  unrealized_positions_value: number;
+  change_today: number;
+  change_today_percent: number;
+  currency: string;
+}
