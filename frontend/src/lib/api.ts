@@ -78,3 +78,36 @@ export async function getStockSignal(
     `/api/stock/${encodeURIComponent(symbol)}/signal`
   );
 }
+
+// Saxo Auth
+export async function getSaxoStatus(): Promise<SaxoConnectionStatus> {
+  return fetchJSONAuthenticated<SaxoConnectionStatus>("/api/saxo/auth/status");
+}
+
+export async function getSaxoConnectUrl(): Promise<SaxoAuthURL> {
+  return fetchJSONAuthenticated<SaxoAuthURL>("/api/saxo/auth/connect");
+}
+
+export async function disconnectSaxo(): Promise<SaxoDisconnectResponse> {
+  return fetchJSONAuthenticated<SaxoDisconnectResponse>(
+    "/api/saxo/auth/disconnect",
+    { method: "DELETE" }
+  );
+}
+
+// Saxo Portfolio
+export async function getSaxoPositions(): Promise<SaxoPositionsResponse> {
+  return fetchJSONAuthenticated<SaxoPositionsResponse>(
+    "/api/saxo/portfolio/positions"
+  );
+}
+
+export async function getSaxoBalance(): Promise<SaxoBalance> {
+  return fetchJSONAuthenticated<SaxoBalance>("/api/saxo/portfolio/balance");
+}
+
+export async function getSaxoPerformance(): Promise<SaxoPerformance> {
+  return fetchJSONAuthenticated<SaxoPerformance>(
+    "/api/saxo/portfolio/performance"
+  );
+}
