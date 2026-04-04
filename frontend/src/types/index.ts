@@ -232,3 +232,19 @@ export interface IndustriesResponse {
   stock_industries: Industry[];
   etf_categories: Industry[];
 }
+
+// Saxo Auth & Connection
+export interface SaxoConnectionStatus {
+  connected: boolean;
+  expires_at?: string;
+  saxo_client_key?: string;
+  circuit_breaker_tripped: boolean;
+}
+
+export interface SaxoAuthURL {
+  auth_url: string;
+}
+
+export interface SaxoDisconnectResponse {
+  disconnected: boolean;
+}
