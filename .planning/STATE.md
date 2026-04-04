@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Executing Phase 03
-last_updated: "2026-04-04T14:40:00Z"
+last_updated: "2026-04-04T15:00:00Z"
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -22,7 +22,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Status
 
 - Phase: 3 - Frontend Integration
-- Status: In progress (plans 03-01, 03-02 complete — 2/5 plans done)
+- Status: In progress (plans 03-01, 03-02, 03-03, 03-04 complete — 4/5 plans done)
 - Blockers: None
 
 ## Phase Progress
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 |-------|------|--------|
 | 1 | Auth & Infrastructure | Complete (5/5 plans) |
 | 2 | Portfolio Data | Complete (4/4 plans) |
-| 3 | Frontend Integration | In progress (2/5 plans complete) |
+| 3 | Frontend Integration | In progress (4/5 plans complete) |
 
 ## Key Decisions (Phase 3)
 
@@ -41,4 +41,6 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 - isInitialLoad ref (not state) used to distinguish initial load from polls — avoids re-render on flag flip
 - pollError is separate from error so poll failures show non-blocking amber banner
 - SaxoPositionEnriched extends SaxoPosition with optional signal field — single type for UI consumers
-- Stopped at: Completed 03-02-PLAN.md (Saxo Portfolio Hook with 60-Second Polling and Signal Enrichment)
+- LoadingSkeleton used as-is (dark-mode styled) on initial load — accepted per UI-SPEC R-02
+- P&L percentage computed inline from open_price/current_price — both fields on SaxoPosition
+- Stopped at: Completed 03-03-PLAN.md (Saxo Portfolio Dashboard and Position Row Components)
