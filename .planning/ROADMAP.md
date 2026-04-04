@@ -19,7 +19,11 @@
 | 2 | 02-02 | Saxo Instrument Mapper Service | Complete (2026-03-31) |
 | 2 | 02-03 | Saxo Portfolio Service | Complete (2026-03-31) |
 | 2 | 02-04 | Saxo Portfolio Router | In Progress |
-| 3 | 03-xx | Frontend Integration | Not started |
+| 3 | 03-01 | Saxo TypeScript Types and Authenticated API Functions | Planned |
+| 3 | 03-02 | Saxo Portfolio Hook with Polling and Signal Enrichment | Planned |
+| 3 | 03-03 | Saxo Portfolio Dashboard and Position Row Components | Planned |
+| 3 | 03-04 | Settings Page Brokerage Connections Section | Planned |
+| 3 | 03-05 | Portfolio Page Tab Navigation and Saxo Connect Prompt | Planned |
 
 ## Phase Details
 
