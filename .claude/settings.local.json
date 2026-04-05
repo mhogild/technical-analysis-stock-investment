@@ -45,7 +45,8 @@
       "Bash(grep -h \"requirements:\" .planning/phases/03-frontend-integration/03-*-PLAN.md)",
       "Bash(git merge:*)",
       "Bash(git:*)",
-      "Bash(./node_modules/.bin/tsc --noEmit)"
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(grep -l \"saxo\" backend/routers/*.py)"
     ]
   }
 }
