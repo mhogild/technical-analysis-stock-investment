@@ -47,7 +47,12 @@
       "Bash(git:*)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(grep -l \"saxo\" backend/routers/*.py)",
-      "Skill(gsd:new-milestone)"
+      "Skill(gsd:new-milestone)",
+      "Bash(cd:*)",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:developer.saxo)",
+      "WebFetch(domain:ranaroussi.github.io)",
+      "WebFetch(domain:openapi.help.saxo)"
     ]
   }
 }
