@@ -82,7 +82,8 @@ The user can discover, analyze, and monitor stocks with evidence-based technical
 |----------|-----------|---------|
 | Backend handles Saxo API calls | Keep secrets server-side, centralize token refresh | Implemented Phase 1 |
 | Start with SIM environment | Safe testing without real money, identical API | Implemented Phase 1 |
-| Replace Yahoo Finance with Saxo as primary data source | User wants single data source from their actual broker; Yahoo Finance to be removed | — Pending |
+| Data source for discovery and market features (v1.1) | Saxo has no screener capability (`/ref/v1/instruments` is reference-only), no sector performance aggregates, no most-active endpoint, and instrument coverage is account-dependent — unsuitable for broad market discovery. yfinance provides `yf.EquityQuery`, `yf.screen('most_actives')`, and `yf.Sector` with full GICS coverage. | **Closed — yfinance.** yfinance is authoritative for screener, most-traded, and sector performance features. Saxo OHLCV migration for TA signals deferred to v1.2 investigation. |
+| Data source for portfolio and account data | Saxo is the only source for real positions, balances, and real-time quotes for held instruments. yfinance cannot replicate brokerage account data. | **Closed — Saxo OpenAPI.** Saxo is authoritative for all portfolio and account data (implemented v1.0). |
 | OAuth flow via backend redirect | Secure token exchange, refresh tokens stored server-side | Implemented Phase 1 |
 | Instrument mapping via exchange-suffix dict | 20 Saxo exchanges mapped to Yahoo Finance suffixes; unknown exchanges degrade gracefully | Implemented Phase 2 |
 | SaxoPortfolioService per-request SaxoClient | Shared httpx.AsyncClient, per-request SaxoClient construction | Implemented Phase 2 |
