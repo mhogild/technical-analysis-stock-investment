@@ -1,59 +1,84 @@
-# Roadmap: Saxo OpenAPI Integration
+# Roadmap: Stock Discovery & Market Trends
 
 ## Overview
-3 phases | 24 requirements | Granularity: coarse
+6 phases | 13 requirements | Granularity: coarse
 
 ## Phase Summary
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|-----------------|
-| 1 | Auth & Infrastructure | Establish secure OAuth connection to Saxo SIM/Live with encrypted token management | AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, INFRA-01, INFRA-02, INFRA-04, INFRA-05 | 4 |
-| 2 | Portfolio Data | Fetch and expose real Saxo account data — positions, balance, performance, and instrument mapping — through backend API | PORT-01, PORT-02, PORT-03, PORT-04, PORT-05, INST-01, INST-02, INST-03, INFRA-03 | 4 |
-| 3 | Frontend Integration | Surface Saxo data in the existing UI with TA signals, polling, and connection management | UI-01, UI-02, UI-03, UI-04, UI-05 | 5 |
+| 4 | Data Source Decision | Close the Saxo-vs-yfinance question and record the architectural decision that gates all v1.1 work | DATA-01, DATA-02 | 2 |
+| 5 | Backend Foundations | Extend StockInfo model with volume fields, add Supabase migration for view tracking, and add market-trends cache constants | TRND-04, TRND-05 | 3 |
+| 6 | Backend Services | Implement ViewsService, MarketTrendsService, and ScreenerService with APScheduler background job; expose via new routers | TRND-01, TRND-02, TRND-03, SCRN-01, SCRN-02, SCRN-03 | 4 |
+| 7 | View Tracking Live | Add useTrackView to the stock detail page so view data accumulates before the Discover page is built | TRND-04, TRND-05 | 2 |
+| 8 | Frontend Infrastructure | Add TypeScript types, Next.js API proxy routes, and React hooks for all four discovery features | SCRN-04, DISC-01 | 3 |
+| 9 | Discover Page & Navigation | Build the unified /discover page with Screener, Market Trends, and Most Viewed tabs; wire into main navigation | SCRN-01, SCRN-02, SCRN-04, TRND-01, TRND-02, TRND-03, TRND-04, DISC-01, DISC-02 | 5 |
+
+> Note: TRND-04 and TRND-05 appear in both Phase 5 and Phase 7/9 because Phase 5 delivers the Supabase schema and service layer, Phase 7 wires the tracking into the existing stock page, and Phase 9 surfaces the results in the Discover UI. Each requirement maps to the phase that closes it.
 
 ## Plan Progress
 
 | Phase | Plan | Title | Status |
 |-------|------|-------|--------|
-| 1 | 01-05 | All plans | Complete (2026-03-29) |
-| 2 | 02-01 | Saxo Cache, Pydantic Models, DB Migration | Complete (2026-03-29) |
-| 2 | 02-02 | Saxo Instrument Mapper Service | Complete (2026-03-31) |
-| 2 | 02-03 | Saxo Portfolio Service | Complete (2026-03-31) |
-| 2 | 02-04 | Saxo Portfolio Router | In Progress |
-| 3 | 03-01 | Saxo TypeScript Types and Authenticated API Functions | Complete (2026-04-04) |
-| 3 | 03-02 | Saxo Portfolio Hook with Polling and Signal Enrichment | Complete (2026-04-04) |
-| 3 | 03-03 | Saxo Portfolio Dashboard and Position Row Components | Complete (2026-04-04) |
-| 3 | 03-04 | Settings Page Brokerage Connections Section | Complete (2026-04-04) |
-| 3 | 03-05 | Portfolio Page Tab Navigation and Saxo Connect Prompt | Complete (2026-04-05) |
+| 4 | — | (single-plan phase) | Not started |
+| 5 | — | (single-plan phase) | Not started |
+| 6 | — | (single-plan phase) | Not started |
+| 7 | — | (single-plan phase) | Not started |
+| 8 | — | (single-plan phase) | Not started |
+| 9 | — | (single-plan phase) | Not started |
 
 ## Phase Details
 
-### Phase 1: Auth & Infrastructure
-**Goal:** Establish a secure, end-to-end OAuth 2.0 connection to Saxo SIM with encrypted token storage and a hardened API client.
-**Requirements:** AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, INFRA-01, INFRA-02, INFRA-04, INFRA-05
-**UI hint:** Minimal — settings page entry point only (connect button exists but full UI polish is Phase 3)
+### Phase 4: Data Source Decision
+**Goal:** Formally close the pending "replace Yahoo Finance with Saxo as primary data source" decision. Record the verdict (yfinance for all discovery and market data; Saxo for portfolio/account data only) in PROJECT.md and prevent re-litigation during v1.1 feature work.
+**Requirements:** DATA-01, DATA-02
+**UI hint:** No — output is a written decision record, not a UI change
 **Success criteria:**
-1. User clicks "Connect Saxo" in settings, completes the Saxo SIM OAuth consent screen, and is redirected back to the app with a confirmed-connected status.
-2. After 20 minutes, the app continues to function without prompting re-authentication (token refresh is working silently).
-3. User clicks "Disconnect" and subsequent API calls to Saxo return 401 (tokens revoked and deleted).
-4. Concurrent browser tabs do not trigger duplicate token refresh calls (mutex lock observable via backend logs showing a single refresh per expiry window).
+1. PROJECT.md Key Decisions table contains a closed entry for "Replace Yahoo Finance with Saxo as primary data source" with rationale referencing Saxo's missing screener, sector, and most-active capabilities.
+2. Any team member reading PROJECT.md can determine which data source is authoritative for each v1.1 feature without ambiguity.
 
-### Phase 2: Portfolio Data
-**Goal:** Fetch real Saxo account data — positions, balance, performance metrics, and instrument identity — and expose it through typed backend endpoints with caching and instrument mapping.
-**Requirements:** PORT-01, PORT-02, PORT-03, PORT-04, PORT-05, INST-01, INST-02, INST-03, INFRA-03
-**UI hint:** No — data is validated via API responses and Saxo platform cross-check, not frontend UI
+### Phase 5: Backend Foundations
+**Goal:** Prepare the backend schema and model layer that all three new services depend on: volume fields in StockInfo, the `stock_view_counts` Supabase table, and cache TTL constants for market trends data.
+**Requirements:** TRND-04, TRND-05
+**UI hint:** No — backend/schema work only; validated via direct API inspection
 **Success criteria:**
-1. Backend `/portfolio/positions` returns positions whose quantities and instruments match what is visible in the Saxo trading platform for the SIM account.
-2. Backend `/portfolio/balance` returns a cash balance figure that matches the Saxo platform balance display.
-3. A Saxo position in a major-exchange stock (e.g., AAPL on XNAS) resolves to a Yahoo Finance ticker and the mapping is persisted — subsequent calls do not re-query the Saxo reference API for that instrument.
-4. A Saxo position in an unrecognised instrument returns a response with `mapped: false` and includes Saxo price and P&L data without crashing.
+1. `GET /api/stocks/{symbol}` response includes `volume` and `avg_volume` numeric fields for any US equity with available data.
+2. Supabase migration `011_create_stock_views.sql` applies cleanly, creating `stock_view_counts` with `symbol`, `view_count`, and `last_viewed_at` columns and appropriate RLS policies.
+3. `backend/config.py` contains named constants for market-trends cache TTL (5 minutes for most-traded, 1 hour for sector performance).
 
-### Phase 3: Frontend Integration
-**Goal:** Render Saxo positions and account data in the existing portfolio and settings UI, enriched with TA signals for mapped instruments and updated via 60-second polling.
-**Requirements:** UI-01, UI-02, UI-03, UI-04, UI-05
+### Phase 6: Backend Services
+**Goal:** Implement and register the three new backend services — ViewsService (fire-and-forget view counter), MarketTrendsService (most-traded + sector performance), and ScreenerService (pre-populated via APScheduler cron job) — so all discovery endpoints are smoke-testable via curl before any frontend work begins.
+**Requirements:** TRND-01, TRND-02, TRND-03, SCRN-01, SCRN-02, SCRN-03
+**UI hint:** No — validated via curl/Postman against running backend
+**Success criteria:**
+1. `GET /api/market/most-traded` returns a list of stocks ranked by dollar volume (volume × price), with `data_as_of` timestamp and `metric_label` field explaining the calculation method.
+2. `GET /api/market/sector-performance` returns all 11 GICS sectors with `daily_change_pct` and `ytd_change_pct`; sectors with no classified stocks return a count of `0` rather than crashing.
+3. `GET /api/screener?sector=Technology&signal=buy` returns pre-populated results from Supabase (not live yfinance queries) within 200ms response time.
+4. APScheduler cron job runs at 02:00 daily, populates the screener Supabase table via upsert (`ON CONFLICT DO UPDATE`), and logs completion with a stock count; a second concurrent run does not produce duplicate rows.
+
+### Phase 7: View Tracking Live
+**Goal:** Add the `useTrackView(symbol)` hook to the existing stock detail page so view data begins accumulating in the `stock_view_counts` table while the Discover page is still being built. Session-scoped deduplication prevents polling inflation.
+**Requirements:** TRND-04, TRND-05
+**UI hint:** Minimal — no visible UI change; observable only via Supabase table inspection
+**Success criteria:**
+1. Opening a stock detail page triggers exactly one increment to `stock_view_counts` for that symbol, regardless of how many price-polling cycles occur during the session.
+2. Opening the same stock in a second tab during the same browser session does not generate a second increment (session-scoped `hasTrackedView` ref guard is active per tab, so a new tab does increment once — this is the intended behavior).
+
+### Phase 8: Frontend Infrastructure
+**Goal:** Add all TypeScript types, Next.js API route proxy handlers, and React hooks needed for the Discover page components — so components in Phase 9 can be built against complete, type-safe interfaces.
+**Requirements:** SCRN-04, DISC-01
+**UI hint:** No — infrastructure layer; validated via TypeScript compilation and hook unit tests
+**Success criteria:**
+1. `frontend/src/types/index.ts` exports typed interfaces for `ScreenerResult`, `MostTradedStock`, `SectorPerformance`, and `TopViewedStock` with no TypeScript errors in strict mode.
+2. All five new Next.js API proxy route handlers (`/api/market/most-traded`, `/api/market/sector-performance`, `/api/screener`, `/api/views/track`, `/api/views/top`) return correctly shaped responses when the backend is running.
+3. `useScreener`, `useMarketTrends`, `useTopViewed`, and `useTrackView` hooks compile without errors and handle loading/error states following the existing hook pattern.
+
+### Phase 9: Discover Page & Navigation
+**Goal:** Build the unified `/discover` page with three tabs (Screener, Market Trends, Most Viewed), implement all feature components (ScreenerFilters, ScreenerResultsTable, MostTradedList, SectorPerformanceGrid, MostViewedList), and add the "Discover" link to the main navigation.
+**Requirements:** SCRN-01, SCRN-02, SCRN-04, TRND-01, TRND-02, TRND-03, TRND-04, DISC-01, DISC-02
 **UI hint:** Yes
 **Success criteria:**
-1. Portfolio page shows a "Saxo Positions" tab; clicking it displays the user's real positions with current price and P&L — no page reload required.
-2. A mapped Saxo position (e.g., a stock also covered by the TA engine) shows a buy/sell signal badge identical to what appears in the existing manual portfolio view.
-3. An unmapped Saxo position shows price and P&L data with a visual indicator making clear that TA signals are unavailable for that instrument.
-4. Settings page "Brokerage Connections" section shows a green connected badge when Saxo is linked and a "Disconnect" button that works without a page reload.
-5. Without any user interaction, the Saxo positions table refreshes its prices and P&L within 60 seconds of a price change (observable by comparing displayed price to Saxo platform).
+1. User navigates to "Discover" from the main navigation, lands on `/discover`, and can switch between Screener, Market Trends, and Most Viewed tabs without a page reload.
+2. User selects sector "Technology" in the screener, optionally filters by signal "Buy", and sees a paginated list of matching stocks; clicking any row navigates to that stock's detail page.
+3. Market Trends tab shows a ranked most-traded list with dollar volume, labeled with the calculation method and data timestamp, and a sector performance grid with daily and YTD returns for all 11 GICS sectors; clicking a sector row shows its top-performing stocks.
+4. Most Viewed tab shows the top stocks ranked by 7-day rolling view count on the platform; the list reflects views accumulated since Phase 7 went live.
+5. All four sections display a `data_as_of` or equivalent freshness indicator so the user understands they are viewing pre-computed, not real-time, data.

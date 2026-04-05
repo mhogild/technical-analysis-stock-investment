@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Stock Discovery & Market Trends
-status: Defining requirements
+status: Ready to execute
 last_updated: "2026-04-05"
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,14 +17,22 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-04-05)
 **Core value:** Discover, analyze, and monitor stocks with evidence-based technical analysis
-**Current focus:** Defining requirements for v1.1
+**Current focus:** Phase 4 — Data Source Decision
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 4 — Data Source Decision
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-05 — Milestone v1.1 started
+Status: Not started
+Last activity: 2026-04-05 — Roadmap created for v1.1
+
+## Phase 4 Summary
+
+**Goal:** Close the pending "Replace Yahoo Finance with Saxo as primary data source" decision.
+**Requirements:** DATA-01, DATA-02
+**Output:** Written decision record in PROJECT.md Key Decisions table.
+**Why first:** This is a gate phase — its outcome (yfinance for all discovery features; Saxo for portfolio/account data only) is already determined by research. Recording it formally prevents re-litigation and unblocks all subsequent phases.
+**Estimated effort:** 1 session (documentation only, no code).
 
 ## Accumulated Context
 
@@ -35,4 +43,13 @@ Last activity: 2026-04-05 — Milestone v1.1 started
 - Backend deployed as FastAPI; frontend on Vercel (Next.js)
 - fetchJSONAuthenticated reads Supabase session at call time
 - Instrument mapping: 20 Saxo exchanges mapped to Yahoo Finance suffixes
-- Pending: Saxo vs Yahoo Finance data source evaluation (now v1.1 Phase 1)
+- Pending decision: Saxo vs Yahoo Finance data source — NOW RESOLVED in Phase 4
+
+### From v1.1 Research
+- yfinance confirmed as the data source for all discovery and market trends features
+- Saxo confirmed as the data source for portfolio/account data only
+- One new Supabase migration needed: 011_create_stock_views.sql
+- No new Python packages required — existing stack covers all v1.1 features
+- Screener background job (APScheduler CronTrigger, 02:00 daily) is the highest-risk work item
+- StockInfo model needs volume + avg_volume fields added
+- Session-scoped hasTrackedView ref guard prevents view count inflation from polling

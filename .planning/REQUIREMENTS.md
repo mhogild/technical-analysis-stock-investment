@@ -61,25 +61,25 @@ Deferred to future milestone. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | — | Pending |
-| DATA-02 | — | Pending |
-| SCRN-01 | — | Pending |
-| SCRN-02 | — | Pending |
-| SCRN-03 | — | Pending |
-| SCRN-04 | — | Pending |
-| TRND-01 | — | Pending |
-| TRND-02 | — | Pending |
-| TRND-03 | — | Pending |
-| TRND-04 | — | Pending |
-| TRND-05 | — | Pending |
-| DISC-01 | — | Pending |
-| DISC-02 | — | Pending |
+| DATA-01 | 4 | Pending |
+| DATA-02 | 4 | Pending |
+| TRND-04 | 5, 7, 9 | Pending |
+| TRND-05 | 5, 7 | Pending |
+| TRND-01 | 6, 9 | Pending |
+| TRND-02 | 6, 9 | Pending |
+| TRND-03 | 6, 9 | Pending |
+| SCRN-01 | 6, 9 | Pending |
+| SCRN-02 | 6, 9 | Pending |
+| SCRN-03 | 6 | Pending |
+| SCRN-04 | 8, 9 | Pending |
+| DISC-01 | 8, 9 | Pending |
+| DISC-02 | 9 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13 ⚠️
+- Mapped to phases: 13
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-05*
-*Last updated: 2026-04-05 after initial definition*
+*Last updated: 2026-04-05 — traceability mapped after roadmap creation*
