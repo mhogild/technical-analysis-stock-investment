@@ -28,9 +28,9 @@ The user can view their real Saxo Bank portfolio and market data within the exis
 - [x] Saxo OpenAPI OAuth 2.0 authentication flow — Validated in Phase 1: auth-infrastructure
 - [x] Fetch and display real Saxo portfolio positions — Validated in Phase 2: portfolio-data
 - [x] Fetch real-time market data from Saxo for held instruments — Validated in Phase 2: portfolio-data
-- [ ] Merge Saxo positions with existing manual portfolio view
+- [x] Merge Saxo positions with existing manual portfolio view — Validated in Phase 3: frontend-integration
 - [x] Display Saxo account balance and performance metrics — Validated in Phase 2: portfolio-data
-- [ ] Apply existing technical analysis signals to Saxo-held instruments
+- [x] Apply existing technical analysis signals to Saxo-held instruments — Validated in Phase 3: frontend-integration
 - [ ] Sync watchlist with Saxo instruments
 
 ### Out of Scope
@@ -70,13 +70,15 @@ The user can view their real Saxo Bank portfolio and market data within the exis
 | OAuth flow via backend redirect | Secure token exchange, refresh tokens stored server-side | Implemented Phase 1 |
 | Instrument mapping via exchange-suffix dict | 20 Saxo exchanges mapped to Yahoo Finance suffixes; unknown exchanges degrade gracefully | Implemented Phase 2 |
 | SaxoPortfolioService per-request SaxoClient | Shared httpx.AsyncClient, per-request SaxoClient construction | Implemented Phase 2 |
-| Polling over WebSocket initially | Simpler implementation, add streaming as v2 enhancement | — Pending |
+| Polling over WebSocket initially | Simpler implementation, add streaming as v2 enhancement | Implemented Phase 3 (60s polling) |
 | Fernet encryption for token storage | Standard symmetric encryption, key in env var | Implemented Phase 1 |
 | Circuit breaker after 2 refresh failures | Prevents hammering Saxo API with invalid tokens | Implemented Phase 1 |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
+
+Last updated: 2026-04-05 — Phase 3 (frontend-integration) complete
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
