@@ -1,12 +1,23 @@
-# Saxo OpenAPI Integration
+# Technical Analysis Stock Investment Platform
 
 ## What This Is
 
-A feature extension to the existing Technical Analysis Stock Investment Platform that integrates Saxo Bank's OpenAPI to bring real brokerage account data (portfolio positions, balances, real-time prices) into the web app. This enables users to see their actual Saxo trading positions alongside the platform's technical analysis signals and recommendations — all in one place, for personal use.
+A personal investment analysis platform that combines technical analysis with real brokerage data. Users can analyze stocks with 10+ evidence-based indicators, view their Saxo Bank portfolio with TA signals, and discover investment opportunities through sector browsing and market activity tracking.
 
 ## Core Value
 
-The user can view their real Saxo Bank portfolio and market data within the existing technical analysis platform, bridging the gap between analysis and their actual holdings.
+The user can discover, analyze, and monitor stocks with evidence-based technical analysis — bridging the gap between market exploration and their actual holdings.
+
+## Current Milestone: v1.1 Stock Discovery & Market Trends
+
+**Goal:** Help users discover investment opportunities through sector browsing, market activity, and platform-level popularity signals — starting with a data source evaluation that determines the technical foundation.
+
+**Target features:**
+- Data source evaluation: Saxo API vs Yahoo Finance (first — informs all other work)
+- Stock screener with sector/industry/market-cap browsing
+- Most traded stocks (highest volume/transaction activity)
+- Sector/industry performance overview
+- Most viewed stocks on the platform (tracked from user activity)
 
 ## Requirements
 
@@ -22,24 +33,29 @@ The user can view their real Saxo Bank portfolio and market data within the exis
 - ✓ Signal history and change detection — existing
 - ✓ Stock recommendations with ranking — existing
 - ✓ Email and in-app notifications — existing
+- ✓ Saxo OpenAPI OAuth 2.0 authentication flow — v1.0 Phase 1
+- ✓ Fetch and display real Saxo portfolio positions — v1.0 Phase 2
+- ✓ Fetch real-time market data from Saxo for held instruments — v1.0 Phase 2
+- ✓ Display Saxo account balance and performance metrics — v1.0 Phase 2
+- ✓ Merge Saxo positions with existing manual portfolio view — v1.0 Phase 3
+- ✓ Apply existing technical analysis signals to Saxo-held instruments — v1.0 Phase 3
 
 ### Active
 
-- [x] Saxo OpenAPI OAuth 2.0 authentication flow — Validated in Phase 1: auth-infrastructure
-- [x] Fetch and display real Saxo portfolio positions — Validated in Phase 2: portfolio-data
-- [x] Fetch real-time market data from Saxo for held instruments — Validated in Phase 2: portfolio-data
-- [x] Merge Saxo positions with existing manual portfolio view — Validated in Phase 3: frontend-integration
-- [x] Display Saxo account balance and performance metrics — Validated in Phase 2: portfolio-data
-- [x] Apply existing technical analysis signals to Saxo-held instruments — Validated in Phase 3: frontend-integration
-- [ ] Sync watchlist with Saxo instruments
+- [ ] Evaluate Saxo API vs Yahoo Finance as primary data source
+- [ ] Stock screener with sector/industry/market-cap browsing
+- [ ] Most traded stocks view (volume/transaction activity)
+- [ ] Sector/industry performance overview
+- [ ] Most viewed stocks on the platform (user activity tracking)
 
 ### Out of Scope
 
-- Trade execution via Saxo API — adds significant complexity and regulatory risk for v1
+- Trade execution via Saxo API — adds significant complexity and regulatory risk
 - Commercial distribution — Saxo terms require written permission for commercial use
 - Multi-broker support — focus on Saxo only for now
 - Real-time streaming via WebSocket — start with polling/on-demand, add streaming later
 - Saxo SIM/demo account management — user manages their own developer account
+- Sync watchlist with Saxo instruments — deferred from v1.0, lower priority than discovery features
 
 ## Context
 
@@ -78,7 +94,7 @@ The user can view their real Saxo Bank portfolio and market data within the exis
 
 This document evolves at phase transitions and milestone boundaries.
 
-Last updated: 2026-04-05 — Phase 3 (frontend-integration) complete
+Last updated: 2026-04-05 — Milestone v1.1 started (Stock Discovery & Market Trends)
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
