@@ -46,7 +46,8 @@
       "Bash(git merge:*)",
       "Bash(git:*)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
-      "Bash(grep -l \"saxo\" backend/routers/*.py)"
+      "Bash(grep -l \"saxo\" backend/routers/*.py)",
+      "Skill(gsd:new-milestone)"
     ]
   }
 }
