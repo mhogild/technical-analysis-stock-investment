@@ -21,9 +21,9 @@
 | 2 | 02-04 | Saxo Portfolio Router | In Progress |
 | 3 | 03-01 | Saxo TypeScript Types and Authenticated API Functions | Complete (2026-04-04) |
 | 3 | 03-02 | Saxo Portfolio Hook with Polling and Signal Enrichment | Complete (2026-04-04) |
-| 3 | 03-03 | Saxo Portfolio Dashboard and Position Row Components | Planned |
+| 3 | 03-03 | Saxo Portfolio Dashboard and Position Row Components | Complete (2026-04-04) |
 | 3 | 03-04 | Settings Page Brokerage Connections Section | Complete (2026-04-04) |
-| 3 | 03-05 | Portfolio Page Tab Navigation and Saxo Connect Prompt | Planned |
+| 3 | 03-05 | Portfolio Page Tab Navigation and Saxo Connect Prompt | Complete (2026-04-05) |
 
 ## Phase Details
 
