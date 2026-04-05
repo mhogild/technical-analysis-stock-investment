@@ -1,113 +1,85 @@
-# Requirements: Saxo OpenAPI Integration
+# Requirements: Stock Discovery & Market Trends
 
-**Defined:** 2026-03-28
-**Core Value:** User can view their real Saxo Bank portfolio alongside existing technical analysis signals
+**Defined:** 2026-04-05
+**Core Value:** Discover, analyze, and monitor stocks with evidence-based technical analysis
 
-## v1 Requirements
+## v1.1 Requirements
 
-Requirements for initial release. Each maps to roadmap phases.
+Requirements for milestone v1.1. Each maps to roadmap phases.
 
-### OAuth & Authentication
+### Data Source Evaluation
 
-- [ ] **AUTH-01**: User can initiate Saxo OAuth connection from settings page
-- [ ] **AUTH-02**: Backend handles full OAuth 2.0 authorization code flow with Saxo SIM/Live
-- [ ] **AUTH-03**: Saxo tokens are encrypted at rest in Supabase (Fernet encryption)
-- [ ] **AUTH-04**: Backend refreshes Saxo access tokens proactively before expiry (20-min TTL)
-- [ ] **AUTH-05**: User can disconnect their Saxo account (tokens revoked and deleted)
-- [ ] **AUTH-06**: CSRF state validation prevents OAuth replay attacks
+- [ ] **DATA-01**: User can see a documented comparison of Saxo API vs Yahoo Finance capabilities for discovery features (sector data, volume, screener, rate limits)
+- [ ] **DATA-02**: System confirms which data source is used for each feature and closes the pending "replace Yahoo Finance" decision
 
-### Account & Portfolio Data
+### Stock Screener
 
-- [x] **PORT-01**: Backend fetches Saxo client info and account list via bootstrap sequence
-- [x] **PORT-02**: User can view their Saxo portfolio positions (stocks and ETFs)
-- [x] **PORT-03**: User can view their Saxo account balance and cash available
-- [x] **PORT-04**: User can view account performance metrics from Saxo
-- [x] **PORT-05**: Saxo positions display current market price and P&L
+- [ ] **SCRN-01**: User can browse stocks by GICS sector (11 sectors) and drill into sub-industries
+- [ ] **SCRN-02**: User can filter screener results by TA signal (buy/sell/hold) using the existing signal engine
+- [ ] **SCRN-03**: Screener data is pre-populated via background job (not live yfinance queries) to avoid rate limiting
+- [ ] **SCRN-04**: User can click any screener result to navigate to the stock's detail page
 
-### Instrument Mapping
+### Market Trends
 
-- [x] **INST-01**: Backend resolves Saxo Uic identifiers to Yahoo Finance tickers via exchange-suffix mapping
-- [x] **INST-02**: Resolved mappings are persisted in Supabase for reuse
-- [x] **INST-03**: Unresolved instruments display Saxo data with a visual indicator (no TA signals)
+- [ ] **TRND-01**: User can view most traded stocks ranked by dollar volume (shares x price), filtering out low-liquidity noise
+- [ ] **TRND-02**: User can view sector performance with daily and YTD returns for all 11 GICS sectors
+- [ ] **TRND-03**: User can drill into a sector to see its top-performing stocks
+- [ ] **TRND-04**: User can see which stocks they've viewed most on the platform (personal activity tracking)
+- [ ] **TRND-05**: View tracking uses session-scoped deduplication to prevent polling/tab inflation
 
-### Frontend Integration
+### Discovery UI
 
-- [ ] **UI-01**: Portfolio page has "Saxo Positions" tab alongside existing "Manual Positions"
-- [ ] **UI-02**: Settings page has "Brokerage Connections" section with connect/disconnect button
-- [ ] **UI-03**: Saxo connection status badge visible when connected
-- [ ] **UI-04**: Saxo positions show existing TA signals for mapped instruments
-- [ ] **UI-05**: Frontend polls backend for Saxo data at 60-second intervals
-
-### Infrastructure
-
-- [x] **INFRA-01**: Supabase tables created: `saxo_tokens`, `saxo_oauth_state`, `saxo_instrument_map`
-- [x] **INFRA-02**: Environment variables configured: `SAXO_APP_KEY`, `SAXO_APP_SECRET`, `SAXO_REDIRECT_URI`, `SAXO_ENVIRONMENT`, `SAXO_TOKEN_ENCRYPTION_KEY`
-- [x] **INFRA-03**: Separate Saxo cache layer with appropriate TTLs (60s positions, 15s quotes, 24h metadata)
-- [ ] **INFRA-04**: Rate limiting respected: 120 req/min/session, exponential backoff on 429s
-- [ ] **INFRA-05**: Saxo API error responses normalized to typed application exceptions
+- [ ] **DISC-01**: A unified "Discover" page serves as the entry point for screener, most-traded, sector performance, and most-viewed
+- [ ] **DISC-02**: Discover page is accessible from the main navigation
 
 ## v2 Requirements
 
-Deferred to future release. Tracked but not in current roadmap.
+Deferred to future milestone. Tracked but not in current roadmap.
 
-### Real-Time Streaming
+### Screener Enhancements
 
-- **STREAM-01**: WebSocket connection for real-time price streaming via `infoprices/subscriptions`
-- **STREAM-02**: ENS event notifications for external position changes
-- **STREAM-03**: Auto-reconnect with exponential backoff on WebSocket disconnect
+- **SCRN-05**: User can filter by market cap (small/mid/large/mega)
+- **SCRN-06**: User can sort screener results by multiple columns
+- **SCRN-07**: User can save screener filter presets
 
-### Enhanced Features
+### Trend Enhancements
 
-- **ENH-01**: Watchlist sync — surface Saxo positions in existing watchlist view
-- **ENH-02**: Multi-account selector for users with multiple Saxo sub-accounts
-- **ENH-03**: Saxo historical chart data as alternative to Yahoo Finance
+- **TRND-06**: User can view biggest gainers and losers by percentage change (with minimum market cap filter)
+- **TRND-07**: User can view volume spike alerts (stocks trading unusually high vs average)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Trade execution via Saxo API | Financial risk from bugs; regulatory complexity; out of scope per project definition |
-| Options, futures, CFDs, FX derivatives | Signal engine is equity/ETF only; each derivative type requires domain-specific logic |
-| Commercial distribution | Requires Saxo written permission; personal use only |
-| Automated/algorithmic trading | Financial loss risk; rate-limited to 1 order/second; out of scope |
-| High-frequency polling (<10s) | 120 req/min limit makes it unsustainable; use streaming in v2 |
-| Multi-broker support | Focus on Saxo only; add other brokers later if needed |
-| Client/account administration | White-label partner feature; unnecessary for personal use |
+| Replace Yahoo Finance with Saxo for discovery | Research confirmed Saxo lacks screener, sector aggregates, and most-active endpoints |
+| Real-time streaming for screener | Polling/background job sufficient; streaming adds complexity for minimal benefit |
+| Social/community features (shared watchlists) | Single-user platform; social features add complexity without value |
+| Options/derivatives screener | Outside current platform scope |
+| Fundamental analysis filters (P/E, revenue) | Focus on technical analysis; fundamentals are a separate feature set |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 1 | Complete |
-| INFRA-02 | Phase 1 | Complete |
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
-| AUTH-04 | Phase 1 | Pending |
-| AUTH-05 | Phase 1 | Pending |
-| AUTH-06 | Phase 1 | Pending |
-| INFRA-04 | Phase 1 | Pending |
-| INFRA-05 | Phase 1 | Pending |
-| PORT-01 | Phase 2 | Complete |
-| PORT-02 | Phase 2 | Complete |
-| PORT-03 | Phase 2 | Complete |
-| PORT-04 | Phase 2 | Complete |
-| PORT-05 | Phase 2 | Complete |
-| INST-01 | Phase 2 | Complete |
-| INST-02 | Phase 2 | Complete |
-| INST-03 | Phase 2 | Complete |
-| INFRA-03 | Phase 2 | Complete |
-| UI-01 | Phase 3 | Pending |
-| UI-02 | Phase 3 | Pending |
-| UI-03 | Phase 3 | Pending |
-| UI-04 | Phase 3 | Pending |
-| UI-05 | Phase 3 | Pending |
+| DATA-01 | — | Pending |
+| DATA-02 | — | Pending |
+| SCRN-01 | — | Pending |
+| SCRN-02 | — | Pending |
+| SCRN-03 | — | Pending |
+| SCRN-04 | — | Pending |
+| TRND-01 | — | Pending |
+| TRND-02 | — | Pending |
+| TRND-03 | — | Pending |
+| TRND-04 | — | Pending |
+| TRND-05 | — | Pending |
+| DISC-01 | — | Pending |
+| DISC-02 | — | Pending |
 
 **Coverage:**
-- v1 requirements: 24 total
-- Mapped to phases: 24
-- Unmapped: 0
+- v1.1 requirements: 13 total
+- Mapped to phases: 0
+- Unmapped: 13 ⚠️
 
 ---
-*Requirements defined: 2026-03-28*
-*Last updated: 2026-03-28 after initial definition*
+*Requirements defined: 2026-04-05*
+*Last updated: 2026-04-05 after initial definition*
