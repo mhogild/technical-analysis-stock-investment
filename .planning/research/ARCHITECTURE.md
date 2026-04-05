@@ -1,594 +1,725 @@
-# Saxo OpenAPI Integration — Architecture Research
+# Architecture: Stock Discovery & Market Trends (v1.1)
 
-## Overview
-
-This document defines the architectural approach for integrating Saxo Bank's OpenAPI into the existing Next.js + FastAPI + Supabase platform. The integration adds real brokerage account data (portfolio positions, balances, real-time prices) without replacing existing Yahoo Finance functionality.
-
----
-
-## 1. OAuth 2.0 Flow Architecture
-
-Saxo uses the standard OAuth 2.0 Authorization Code Flow. The backend must own the entire flow — no client secrets ever reach the browser.
-
-### Flow sequence
-
-```
-User (browser)
-  │
-  │  1. Click "Connect Saxo Account"
-  ▼
-Next.js frontend
-  │
-  │  2. GET /api/saxo/auth/connect  (Next.js route)
-  ▼
-FastAPI backend  /api/saxo/auth/connect
-  │
-  │  3. Build Saxo authorize URL with:
-  │     - client_id (from env)
-  │     - redirect_uri = http://localhost:8000/api/saxo/auth/callback
-  │     - response_type = code
-  │     - state = opaque CSRF token (stored in Supabase session row)
-  │
-  │  4. Return redirect URL to frontend
-  ▼
-Frontend redirects browser to Saxo login page
-  │
-  │  5. User authenticates at Saxo
-  ▼
-Saxo redirects browser to redirect_uri with ?code=...&state=...
-  │
-  ▼
-FastAPI backend  /api/saxo/auth/callback
-  │
-  │  6. Validate state matches stored CSRF token
-  │  7. POST to Saxo token endpoint with code + client_secret
-  │  8. Receive { access_token, refresh_token, expires_in }
-  │  9. Encrypt tokens and persist to Supabase (saxo_tokens table)
-  │ 10. Redirect browser to frontend /portfolio?saxo=connected
-  ▼
-Frontend shows Saxo portfolio data
-```
-
-### Redirect URI decision
-
-The redirect URI must point to the **FastAPI backend** (port 8000), not the Next.js frontend. This keeps the authorization code exchange entirely server-side. The backend then redirects the browser back to the frontend after token exchange completes.
-
-For the SIM environment, the registered redirect URI at developer.saxo is `http://localhost:8000/api/saxo/auth/callback`.
-
-### State / CSRF protection
-
-Before redirecting to Saxo, the backend generates a random `state` value (e.g., `secrets.token_urlsafe(32)`), stores it in Supabase tied to the authenticated user's session, and validates it on callback return. This prevents CSRF attacks on the OAuth redirect.
+*Written: 2026-04-05*
+*Milestone: v1.1 — Stock Discovery & Market Trends*
+*Context: Brownfield addition to existing Next.js 15 + FastAPI + Supabase platform*
 
 ---
 
-## 2. Token Storage
+## Purpose
 
-### Decision: Encrypted columns in Supabase
-
-Tokens must survive backend restarts (Docker Compose) and must be tied to a specific user. In-memory storage is inappropriate — a restart would log all users out of Saxo and require re-authorization.
-
-**Chosen approach: Supabase `saxo_tokens` table with application-layer encryption.**
-
-```sql
-CREATE TABLE saxo_tokens (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  access_token    TEXT NOT NULL,     -- AES-256-GCM encrypted, base64-encoded
-  refresh_token   TEXT NOT NULL,     -- AES-256-GCM encrypted, base64-encoded
-  token_type      TEXT NOT NULL DEFAULT 'Bearer',
-  expires_at      TIMESTAMPTZ NOT NULL,
-  scope           TEXT,
-  saxo_client_key TEXT,              -- Saxo ClientKey for account lookups
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (user_id)
-);
-
--- RLS: users can only see their own tokens
-ALTER TABLE saxo_tokens ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users own their tokens"
-  ON saxo_tokens FOR ALL
-  USING (user_id = auth.uid());
-```
-
-**Encryption**: The FastAPI backend encrypts/decrypts token values using a symmetric key stored in `SAXO_TOKEN_ENCRYPTION_KEY` environment variable (32 bytes, stored in `.env`). Use Python's `cryptography` library (`Fernet` or `AES-GCM`). The database never stores plaintext tokens.
-
-**Why not backend memory?**
-- Docker Compose restarts wipe memory
-- Doesn't scale if the backend is ever replicated
-- Cannot associate tokens to specific users
-
-**Why not Supabase Auth metadata?**
-- `auth.users` metadata is not designed for sensitive credential storage
-- A dedicated table gives full control over schema, rotation, and RLS
-
-### Token refresh flow
-
-The backend service checks `expires_at` before every Saxo API call. If the token expires within 60 seconds, it proactively refreshes using the stored `refresh_token`. The refresh logic lives in `SaxoTokenService` (see Section 3).
+This document defines how the four v1.1 features integrate with the existing architecture, what new components are needed versus what is modified, and the build order given that a data source evaluation must gate all other work.
 
 ---
 
-## 3. Service Layer Design in FastAPI
+## 1. Existing Architecture Snapshot
 
-### New files to create
+Understanding what already exists is essential before identifying what is new.
+
+### Backend service layer
 
 ```
 backend/
+  main.py                              # FastAPI app; 7 routers mounted
+  config.py                            # All constants and env vars
   routers/
-    saxo.py                    # All Saxo HTTP endpoints
+    stock.py                           # /api/stock/{symbol}/*
+    search.py                          # /api/search
+    exchanges.py                       # /api/exchanges
+    portfolio.py                       # /api/portfolio/*
+    recommendations.py                 # /api/recommendations
+    industries.py                      # /api/industries
+    saxo.py                            # /api/saxo/*
   services/
-    saxo_token_service.py      # Token lifecycle: store, refresh, validate
-    saxo_client.py             # Authenticated HTTP client for Saxo REST API
-    saxo_portfolio_service.py  # Portfolio positions, balances, P&L
-    saxo_market_service.py     # Real-time prices, instrument info
-    saxo_instrument_mapper.py  # Uic → Yahoo Finance ticker mapping
-  models/
-    saxo.py                    # Pydantic models for Saxo data
+    data_fetcher.py                    # yfinance wrapper: stock info, price history, price DataFrame
+    indicator_calculator.py            # 10+ indicators: SMA, EMA, RSI, MACD, BB, Williams %R, MFI, etc.
+    signal_engine.py                   # Weighted signal consolidation + plain-language explanation
+    recommendations_service.py        # Scans UNIVERSE_STOCKS + UNIVERSE_ETFS, computes signals
+    industry_service.py                # Static industry/sector classification mapping
+    search_service.py                  # CSV-based ticker search
+    saxo_client.py                     # httpx wrapper for Saxo OpenAPI
+    saxo_token_service.py              # Token encrypt/store/refresh/revoke
+    saxo_portfolio_service.py          # Positions, balance, performance from Saxo
+    saxo_instrument_mapper.py          # Uic → Yahoo ticker resolution
+    currency_service.py
+    notification_service.py
   cache/
-    saxo_cache.py              # Saxo-specific TTL cache (extends StockCache pattern)
+    stock_cache.py                     # TTL in-memory cache keyed by (symbol, data_type)
+    saxo_cache.py                      # TTL in-memory cache keyed by user_id
+  models/
+    stock.py, indicator.py, signal.py, recommendation.py, industry.py, portfolio.py, saxo.py
 ```
 
-### `SaxoTokenService` (`services/saxo_token_service.py`)
-
-Responsibilities:
-- Store encrypted tokens in Supabase after OAuth callback
-- Retrieve and decrypt tokens for a given `user_id`
-- Proactively refresh tokens before expiry
-- Handle revocation (disconnect flow)
-
-```python
-class SaxoTokenService:
-    def store_tokens(self, user_id: str, token_response: dict) -> None
-    def get_valid_token(self, user_id: str) -> str  # Refreshes if needed, returns access_token
-    def refresh_token(self, user_id: str) -> str
-    def revoke_tokens(self, user_id: str) -> None
-```
-
-### `SaxoClient` (`services/saxo_client.py`)
-
-A thin authenticated HTTP client wrapping `httpx.AsyncClient`. All Saxo REST calls go through here. It calls `SaxoTokenService.get_valid_token()` before each request.
-
-```python
-class SaxoClient:
-    BASE_URL_SIM  = "https://gateway.saxobank.com/sim/openapi"
-    BASE_URL_LIVE = "https://gateway.saxobank.com/openapi"
-
-    async def get(self, user_id: str, path: str, params: dict = {}) -> dict
-    async def post(self, user_id: str, path: str, body: dict) -> dict
-```
-
-Environment variable `SAXO_ENVIRONMENT=sim|live` selects the base URL. This makes SIM↔live switching a single config change.
-
-### `SaxoPortfolioService` (`services/saxo_portfolio_service.py`)
-
-Fetches and normalizes Saxo account data.
-
-```python
-class SaxoPortfolioService:
-    async def get_accounts(self, user_id: str) -> list[SaxoAccount]
-    async def get_positions(self, user_id: str) -> list[SaxoPosition]
-    async def get_balance(self, user_id: str) -> SaxoBalance
-    async def get_closed_positions(self, user_id: str) -> list[SaxoClosedPosition]
-```
-
-Key Saxo endpoints used:
-- `GET /port/v1/accounts/me` — list accounts
-- `GET /port/v1/positions/me` — open positions (returns Uic + AssetType)
-- `GET /port/v1/balances/me` — account balance and margin info
-
-### `SaxoMarketService` (`services/saxo_market_service.py`)
-
-Fetches instrument info and quotes.
-
-```python
-class SaxoMarketService:
-    async def get_quote(self, user_id: str, uic: int, asset_type: str) -> SaxoQuote
-    async def get_instrument_details(self, user_id: str, uic: int, asset_type: str) -> SaxoInstrument
-    async def get_quotes_batch(self, user_id: str, instruments: list[dict]) -> list[SaxoQuote]
-```
-
-Key Saxo endpoints used:
-- `GET /trade/v1/infoprices/list` — batch quote fetch (respects rate limits)
-- `GET /ref/v1/instruments/details` — instrument metadata (symbol, description, exchange)
-
-### `SaxoRouter` (`routers/saxo.py`)
-
-```
-GET  /api/saxo/auth/connect           → redirect URL to Saxo OAuth page
-GET  /api/saxo/auth/callback          → exchange code, store tokens, redirect to frontend
-DELETE /api/saxo/auth/disconnect      → revoke and delete tokens
-GET  /api/saxo/status                 → is user connected? token validity?
-GET  /api/saxo/portfolio/positions    → enriched positions list
-GET  /api/saxo/portfolio/balance      → account balance summary
-GET  /api/saxo/portfolio/accounts     → list of accounts
-```
-
-All portfolio/balance routes require `X-User-ID` header or extract `user_id` from the Supabase JWT passed in `Authorization: Bearer <supabase_jwt>`. The backend validates the Supabase JWT using `SUPABASE_JWT_SECRET` to extract `user_id` without a round-trip to Supabase.
-
----
-
-## 4. Mapping Saxo Uic to Yahoo Finance Tickers
-
-Saxo identifies instruments by `Uic` (integer) + `AssetType` (e.g., `Stock`, `Etf`). Yahoo Finance uses ticker symbols like `AAPL`, `NOVO-B.CO`. These are not the same and there is no universal 1:1 API mapping.
-
-### Mapping strategy
-
-**Approach: Fetch instrument details from Saxo, construct Yahoo ticker heuristically, persist mapping.**
-
-When a Saxo position is first seen, the backend:
-
-1. Calls `GET /ref/v1/instruments/details?Uic={uic}&AssetType={type}` to get:
-   - `Symbol` (e.g., `NOVO-B`)
-   - `ExchangeId` (e.g., `CSE` for Copenhagen)
-   - `Description` (full name)
-   - `CurrencyCode`
-
-2. Constructs a candidate Yahoo ticker using exchange suffix mapping:
-
-```python
-SAXO_EXCHANGE_TO_YAHOO_SUFFIX = {
-    "XNYS": "",         # NYSE → no suffix (e.g., "AAPL")
-    "XNAS": "",         # NASDAQ → no suffix
-    "XCSE": ".CO",      # Copenhagen → "NOVO-B.CO"
-    "XOSL": ".OL",      # Oslo → "EQNR.OL"
-    "XSTO": ".ST",      # Stockholm → "ERIC-B.ST"
-    "XHEL": ".HE",      # Helsinki → "NOKIA.HE"
-    "XPAR": ".PA",      # Paris → "AIR.PA"
-    "XFRA": ".F",       # Frankfurt → "BMW.F"
-    "XLON": ".L",       # London → "BP.L"
-    "XAMS": ".AS",      # Amsterdam → "ASML.AS"
-    # ... extend as positions are encountered
-}
-```
-
-3. Validates the constructed ticker against yfinance (try `yf.Ticker(candidate).info`). If validation fails, marks mapping as `unresolved` and falls back to Saxo prices for that instrument.
-
-4. Persists the mapping to Supabase:
-
-```sql
-CREATE TABLE saxo_instrument_map (
-  uic             INTEGER NOT NULL,
-  asset_type      TEXT NOT NULL,
-  saxo_symbol     TEXT NOT NULL,
-  saxo_exchange   TEXT,
-  yahoo_ticker    TEXT,          -- NULL if unresolved
-  resolved        BOOLEAN NOT NULL DEFAULT FALSE,
-  last_verified   TIMESTAMPTZ,
-  PRIMARY KEY (uic, asset_type)
-);
-```
-
-### Fallback behavior
-
-- If `yahoo_ticker` is resolved: use Yahoo Finance for historical data and technical analysis (existing pipeline), use Saxo for real-time price and position data.
-- If `yahoo_ticker` is NULL (unresolved): display Saxo price and position data only, omit technical analysis signals with a UI note.
-
-### Where mapping runs
-
-`SaxoInstrumentMapper` (`services/saxo_instrument_mapper.py`) owns this logic. It is called lazily — only when a new Uic is encountered that does not yet exist in `saxo_instrument_map`. Results are cached in `SaxoCache` (5 min TTL for resolved, retry unresolved after 24h).
-
----
-
-## 5. Frontend Component Architecture
-
-### New pages and components
+### Frontend structure
 
 ```
 frontend/src/
   app/
-    portfolio/
-      page.tsx                        # MODIFIED: add SaxoPortfolioSection tab
-    saxo/
-      connect/page.tsx                # OAuth connect landing (shows connect button)
-      callback/page.tsx               # Receives ?saxo=connected after backend redirect
+    page.tsx                           # Home — hardcoded POPULAR_STOCKS list (static)
+    stock/[symbol]/page.tsx            # Single stock analysis
+    portfolio/                         # Manual + Saxo portfolio views
+    recommendations/                   # Buy-signal recommendations with industry filter
+    watchlist/                         # Watchlist management
+    settings/                          # Brokerage connections
+    methodology/                       # Static content
+    api/                               # Next.js API routes (proxies to FastAPI)
   components/
-    saxo/
-      SaxoConnectButton.tsx           # "Connect Saxo Account" CTA
-      SaxoStatusBadge.tsx             # Shows connected/disconnected state
-      SaxoPortfolioSection.tsx        # Main container for Saxo data in portfolio page
-      SaxoPositionsTable.tsx          # Table of open positions with enrichment
-      SaxoBalanceSummary.tsx          # Account balance cards (total equity, margin, P&L)
-      SaxoPositionRow.tsx             # Single position row (Saxo price + TA signal if mapped)
-      SaxoUnmappedBadge.tsx           # Shows "No TA data available" for unmapped instruments
+    charts/, stock/, portfolio/, recommendations/, watchlist/, saxo/, ui/, layout/, notifications/, security/
   hooks/
-    useSaxoStatus.ts                  # Is user connected? Fetch from /api/saxo/status
-    useSaxoPortfolio.ts               # Fetch positions + balance from backend
-    useSaxoConnect.ts                 # Initiate OAuth flow
+    useStock.ts, usePortfolio.ts, useRecommendations.ts, useIndustryFilter.ts,
+    useSaxoPortfolio.ts, useAuth.ts, useWatchlist.ts, useNotifications.ts
   lib/
-    api/
-      saxo.ts                         # Frontend API client for Saxo endpoints
-  types/
-    saxo.ts                           # SaxoPosition, SaxoBalance, SaxoAccount types
+    api.ts                             # Generic fetchJSON<T> wrapper
+    formatters.ts, config.ts
+  types/index.ts                       # Centralized TypeScript types
 ```
 
-### Integration with existing portfolio page
+### Data sources
 
-The existing `portfolio/page.tsx` shows manual positions from Supabase (`PortfolioDashboard`). The Saxo integration adds a tab/section to the same page rather than a new route:
+- **yfinance**: all stock info, OHLCV history, indicator calculation — primary data source
+- **Saxo OpenAPI**: real portfolio positions, account balance, real-time prices for held instruments
+- **Supabase**: user data (portfolio, watchlist, notifications, signal history, Saxo tokens)
+- **StockCache**: 4h TTL for prices/indicators, 24h for company info
+- **UNIVERSE_STOCKS / UNIVERSE_ETFS**: hardcoded lists in `recommendations_service.py` (~200 symbols)
 
-```
-Portfolio page
-├── Tab: "Manual Positions"   (existing PortfolioDashboard — unchanged)
-└── Tab: "Saxo Positions"     (new SaxoPortfolioSection)
-    ├── SaxoBalanceSummary    (total equity, unrealized P&L, margin)
-    └── SaxoPositionsTable
-        └── SaxoPositionRow (per position)
-            ├── Saxo real-time price + daily change
-            ├── Quantity, open price, unrealized P&L
-            └── TA signal badge (if yahoo_ticker resolved, else SaxoUnmappedBadge)
-```
+### Key constraint entering v1.1
 
-`SaxoPortfolioSection` checks `useSaxoStatus`. If not connected, renders `SaxoConnectButton`. If connected, renders the data.
-
-### Settings page addition
-
-Add a "Brokerage Connections" section to the existing `/settings` page:
-- Shows Saxo connection status
-- Provides connect / disconnect button
-- Shows last token refresh time
+The project's Key Decisions table records: "Replace Yahoo Finance with Saxo as primary data source — Pending". This data source evaluation is the prerequisite for all v1.1 features because:
+- Most-traded stocks require a volume/activity data source
+- Sector performance requires reliable sector OHLCV aggregation
+- Stock screener filter quality (market-cap accuracy, sector classifications) depends on the chosen source
+- The entire signal pipeline currently flows through yfinance; switching sources changes every service
 
 ---
 
-## 6. Data Flow: End-to-End
+## 2. Feature Integration Map
 
-```
-1. USER LOGIN (Supabase)
-   User logs in via Supabase Auth → frontend has Supabase JWT
+### Feature A — Data Source Evaluation
 
-2. SAXO OAUTH INITIATION
-   User clicks "Connect Saxo Account"
-   → Frontend calls GET /api/saxo/auth/connect (passes Supabase JWT in header)
-   → Backend validates JWT, extracts user_id
-   → Backend generates CSRF state, stores in Supabase (saxo_oauth_state table)
-   → Backend returns Saxo authorize URL
-   → Frontend redirects browser to Saxo
+**Nature:** Investigation/decision task. Produces a decision record, not code.
 
-3. SAXO AUTHORIZATION
-   User authenticates at Saxo
-   → Saxo redirects to http://localhost:8000/api/saxo/auth/callback?code=...&state=...
+**What it touches:**
+- `DataFetcher` (backend/services/data_fetcher.py) — the single point of yfinance coupling
+- `config.py` — where the data source toggle would live
+- All downstream services (IndicatorCalculator, RecommendationsService) depend on DataFetcher indirectly
 
-4. TOKEN EXCHANGE (backend)
-   → Backend validates state vs stored CSRF token
-   → Backend POSTs code to Saxo token endpoint with client_secret
-   → Saxo returns { access_token, refresh_token, expires_in }
-   → Backend encrypts tokens, stores in Supabase saxo_tokens table
-   → Backend redirects browser to http://localhost:3000/portfolio?saxo=connected
+**What the evaluation must answer:**
+1. Can Saxo provide full OHLCV history (1y+) for all instruments in UNIVERSE_STOCKS? (Most are US equities on NYSE/NASDAQ — Saxo covers these but coverage gaps exist for small caps.)
+2. Does Saxo deliver volume data suitable for "most-traded" calculation? (Volume in Saxo chart API is exchange-reported volume, comparable to Yahoo Finance.)
+3. What is the latency/reliability of Saxo chart data vs yfinance? (yfinance is free but rate-limited and unofficial; Saxo is an official API with SLAs.)
+4. Does Saxo sector/industry classification match existing SECTOR_TO_INDUSTRY mapping in `industry_service.py`?
+5. What is the implementation cost of replacing DataFetcher? (Saxo uses Uic+AssetType; the screener universe uses Yahoo tickers — bidirectional mapping required.)
 
-5. PORTFOLIO DATA FETCH
-   User lands on /portfolio, Saxo tab active
-   → useSaxoPortfolio hook calls GET /api/saxo/portfolio/positions
-   → Next.js API route (frontend/src/app/api/saxo/portfolio/positions/route.ts) delegates to backend
-   → FastAPI backend:
-       a. Extracts user_id from Supabase JWT in Authorization header
-       b. SaxoTokenService.get_valid_token(user_id) — refreshes if needed
-       c. SaxoPortfolioService.get_positions(user_id) → Saxo positions list
-       d. For each position: SaxoInstrumentMapper.get_yahoo_ticker(uic, asset_type)
-       e. For resolved tickers: fetch cached TA signal from existing SignalEngine
-       f. Returns merged SaxoEnrichedPosition[]
-   → Frontend renders SaxoPositionsTable
+**Decision outcome affects build order:** If Saxo replaces yfinance, the screener must resolve Yahoo tickers → Saxo Uic before fetching data. If yfinance stays, the screener uses the existing DataFetcher directly.
 
-6. SUBSEQUENT PRICE UPDATES
-   Frontend polls GET /api/saxo/portfolio/positions every 60 seconds
-   → Backend returns fresh Saxo prices (respects rate limits via SaxoCache)
-   → React state updates, table re-renders with new prices
-```
+**Evaluation approach (no code yet):**
+- Test `GET /chart/v3/charts` for 5–10 UNIVERSE_STOCKS symbols via SIM environment
+- Compare OHLCV values against yfinance for the same date range
+- Test `GET /ref/v1/instruments` to confirm Saxo can resolve Yahoo tickers via ISIN
+- Document findings in a decision record (`.planning/decisions/DATA_SOURCE.md`)
 
 ---
 
-## 7. Caching Strategy
+### Feature B — Stock Screener
 
-### Saxo-specific cache (`cache/saxo_cache.py`)
+**Nature:** New feature. Lets users browse stocks by sector, industry, and market-cap range.
 
-Extend the existing `StockCache` pattern with a separate `SaxoCache` instance. Do not share the same cache instance with Yahoo Finance data to avoid key collisions.
+**Integration with existing architecture:**
+
+The `IndustryService` already classifies stocks into sectors via `SECTOR_TO_INDUSTRY`. The `RecommendationsService` already scans a `UNIVERSE_STOCKS` list and computes signals. The screener extends these two existing pieces — it does not replace them.
+
+```
+New screener request flow:
+
+Browser → GET /api/screener?sector=technology&market_cap_min=10B&sort=signal_score
+  → FastAPI ScreenerRouter
+  → ScreenerService.filter(params)
+      → StockCache (check for cached screener results)
+      → DataFetcher.get_stock_info(symbol) for each in UNIVERSE_STOCKS (already cached 24h)
+      → IndustryService.classify_stock(sector, industry)  [existing]
+      → SignalEngine.get_cached_signal(symbol)  [from RecommendationsService cache]
+      → Filter + rank results
+  → Return ScreenerResponse (paginated)
+```
+
+**New backend components:**
+
+| Component | Type | Location | Description |
+|-----------|------|----------|-------------|
+| `ScreenerService` | New service | `backend/services/screener_service.py` | Applies filter params against UNIVERSE_STOCKS; reuses DataFetcher + IndustryService + cached signals |
+| `screener` router | New router | `backend/routers/screener.py` | Mounts `GET /api/screener` with query params |
+| `ScreenerResult`, `ScreenerResponse` | New models | `backend/models/screener.py` | Pydantic response shapes |
+
+**New frontend components:**
+
+| Component | Type | Location | Description |
+|-----------|------|----------|-------------|
+| `/discover` page | New page | `frontend/src/app/discover/page.tsx` | Container for screener + market trends tabs |
+| `StockScreener` | New component | `frontend/src/components/discover/StockScreener.tsx` | Filter controls + results table |
+| `ScreenerFilters` | New component | `frontend/src/components/discover/ScreenerFilters.tsx` | Sector/industry/market-cap filter UI |
+| `ScreenerResultsTable` | New component | `frontend/src/components/discover/ScreenerResultsTable.tsx` | Paginated table of filtered stocks |
+| `useScreener` | New hook | `frontend/src/hooks/useScreener.ts` | Fetches screener results, manages filter state |
+
+**Modified components:**
+
+| Component | Change | Reason |
+|-----------|--------|--------|
+| `frontend/src/app/layout.tsx` or nav component | Add "Discover" nav link | Surface new page in navigation |
+| `backend/main.py` | `app.include_router(screener_router.router)` | Register new router |
+
+**No new Supabase tables required.** Screener results are computed on-demand from existing cached data. No user-specific state is stored.
+
+**Screener filter parameters:**
+
+```
+GET /api/screener
+  ?sector=technology          # industry ID from IndustryService
+  &market_cap_min=10000000000 # in USD
+  &market_cap_max=1000000000000
+  &signal=buy                 # buy | sell | neutral (from SignalEngine)
+  &sort=signal_score          # signal_score | market_cap | daily_change
+  &order=desc
+  &limit=50
+  &offset=0
+```
+
+**Caching strategy for screener:**
+
+The screener does not introduce new cache logic. It reads from the existing StockCache:
+- Company info (sector, market cap) is cached at 24h TTL — same as `DataFetcher.get_stock_info()`
+- Signals are cached at 1h TTL by `RecommendationsService`
+- The screener response itself does not need to be cached separately — it assembles already-cached data
+
+---
+
+### Feature C — Market Trends (Most-Traded, Sector Performance)
+
+**Nature:** New feature. Shows which stocks have highest volume and how sectors are performing.
+
+**Integration with existing architecture:**
+
+Both sub-features require aggregating data across multiple symbols. The `RecommendationsService` already does this pattern (scans UNIVERSE_STOCKS, collects results). Market trends follows the same pattern but aggregates volume and price-change instead of signals.
+
+**Most-Traded Stocks:**
+
+Volume data is already fetched by `DataFetcher.get_stock_info()` — `yf.Ticker.info` returns `regularMarketVolume` and `averageVolume`. No new data fetching is needed. The `StockInfo` model already holds this data. The service just sorts UNIVERSE_STOCKS by volume ratio (`current_volume / avg_volume`) to surface unusual activity.
+
+```
+GET /api/market/most-traded?limit=20&asset_type=stock
+
+→ MarketTrendsService.get_most_traded(limit)
+    → For each symbol in UNIVERSE_STOCKS:
+        info = DataFetcher.get_stock_info(symbol)  [24h cache]
+        volume_ratio = info.current_volume / info.avg_volume
+    → Sort by volume_ratio DESC
+    → Return top N
+```
+
+**Sector Performance:**
+
+Group all UNIVERSE_STOCKS by sector classification (using IndustryService), compute average daily_change_percent per sector, and return ranked sector performance.
+
+```
+GET /api/market/sector-performance
+
+→ MarketTrendsService.get_sector_performance()
+    → For each symbol in UNIVERSE_STOCKS:
+        info = DataFetcher.get_stock_info(symbol)  [24h cache]
+        sector = IndustryService.classify_stock(info.sector, info.industry)
+        record: { sector, daily_change_percent }
+    → Group by sector, average daily_change_percent
+    → Return sectors ranked by performance
+```
+
+**New backend components:**
+
+| Component | Type | Location | Description |
+|-----------|------|----------|-------------|
+| `MarketTrendsService` | New service | `backend/services/market_trends_service.py` | Aggregates volume and sector performance from cached stock info |
+| `market` router | New router | `backend/routers/market.py` | Mounts `GET /api/market/most-traded` and `GET /api/market/sector-performance` |
+| `MostTradedStock`, `SectorPerformance`, `MarketTrendsResponse` | New models | `backend/models/market.py` | Pydantic response shapes |
+
+**New frontend components:**
+
+| Component | Type | Location | Description |
+|-----------|------|----------|-------------|
+| `MostTradedList` | New component | `frontend/src/components/discover/MostTradedList.tsx` | Ranked list of high-volume stocks |
+| `SectorPerformanceGrid` | New component | `frontend/src/components/discover/SectorPerformanceGrid.tsx` | Sector heatmap/ranking |
+| `useMarketTrends` | New hook | `frontend/src/hooks/useMarketTrends.ts` | Fetches both most-traded and sector performance |
+
+**Modified components:**
+
+| Component | Change |
+|-----------|--------|
+| `/discover` page | Add market trends tab/section alongside screener |
+| `backend/main.py` | Register market router |
+| `backend/models/stock.py` — `StockInfo` | Confirm `volume` and `avg_volume` fields exist; add if missing |
+
+**Note on StockInfo model:** `DataFetcher.get_stock_info()` pulls `regularMarketVolume` and `averageVolume` from yfinance but the current `StockInfo` Pydantic model may not expose them. These fields need to be added if absent.
+
+**Caching:** MarketTrendsService reuses the 24h StockCache. The aggregated market trends response should additionally be cached separately (15–30 min TTL) to avoid re-scanning all symbols on every request during market hours.
 
 ```python
-class SaxoCache(StockCache):
-    """TTL cache for Saxo API responses. Uses user_id as primary cache dimension."""
-
-    def get_positions(self, user_id: str) -> list | None
-    def set_positions(self, user_id: str, data: list, ttl: int) -> None
-    def get_quote(self, uic: int) -> dict | None
-    def set_quote(self, uic: int, data: dict, ttl: int) -> None
-    def get_instrument(self, uic: int) -> dict | None
-    def set_instrument(self, uic: int, data: dict, ttl: int) -> None
-```
-
-### TTL values
-
-| Data type | TTL | Rationale |
-|-----------|-----|-----------|
-| Saxo positions | 60 seconds | Near real-time but avoids hammering API on every render |
-| Saxo balance | 60 seconds | Same cadence as positions |
-| Saxo real-time quotes | 15 seconds | Price data; respect Saxo rate limits |
-| Instrument details (Uic→metadata) | 24 hours | Rarely changes |
-| Instrument map (Uic→Yahoo ticker) | Permanent (DB) | One-time resolution |
-| OAuth state (CSRF) | 10 minutes | Enough time to complete auth flow |
-
-### Rate limit awareness
-
-Saxo's OpenAPI enforces per-application rate limits (typically 120 requests/minute on SIM). Strategies:
-
-1. **Batch quote requests**: Use `GET /trade/v1/infoprices/list` with a comma-separated list of Uics instead of one request per position. This is the single most impactful optimization.
-2. **Cache before computing**: Never fetch from Saxo if valid cached data exists.
-3. **Debounce polling**: Frontend polls at most once per 60 seconds. The `useSaxoPortfolio` hook tracks `lastFetchedAt` and suppresses redundant calls.
-4. **Exponential backoff**: On HTTP 429, retry with 1s, 2s, 4s backoff. After 3 failures, surface an error to the user rather than hammering the API.
-5. **Saxo-specific error handling**: Wrap all Saxo API calls in `SaxoClient.get/post` to catch and classify errors (401 → trigger refresh, 429 → backoff, 503 → transient).
-
----
-
-## 8. Pydantic Models (`backend/models/saxo.py`)
-
-```python
-class SaxoTokenData(BaseModel):
-    user_id: str
-    access_token: str  # decrypted, never serialized to JSON
-    refresh_token: str  # decrypted, never serialized to JSON
-    expires_at: datetime
-    saxo_client_key: str | None
-
-class SaxoAccount(BaseModel):
-    account_id: str
-    account_key: str
-    display_name: str
-    currency: str
-    account_type: str
-
-class SaxoPosition(BaseModel):
-    position_id: str
-    uic: int
-    asset_type: str
-    instrument_symbol: str
-    instrument_description: str
-    quantity: float
-    open_price: float
-    current_price: float
-    unrealized_pnl: float
-    currency: str
-    yahoo_ticker: str | None  # None if unmapped
-
-class SaxoEnrichedPosition(SaxoPosition):
-    ta_signal: ConsolidatedSignalLevel | None  # from existing SignalEngine
-    signal_score: float | None
-
-class SaxoBalance(BaseModel):
-    total_value: float
-    cash_balance: float
-    unrealized_pnl: float
-    realized_pnl_today: float
-    currency: str
-    margin_used: float | None
-    margin_available: float | None
-
-class SaxoConnectionStatus(BaseModel):
-    connected: bool
-    expires_at: datetime | None
-    saxo_client_key: str | None
+# New cache key pattern (in StockCache or a simple dict):
+CACHE_TTL_MARKET_TRENDS = 15 * 60  # 15 minutes
 ```
 
 ---
 
-## 9. Environment Variables
+### Feature D — Most-Viewed Tracking
 
-Add to `.env` and backend `config.py`:
+**Nature:** New feature. Tracks which stocks users view most on the platform, using platform-level activity data (not market data).
 
-```bash
-# Saxo OpenAPI
-SAXO_APP_KEY=<from developer.saxo>
-SAXO_APP_SECRET=<from developer.saxo>
-SAXO_REDIRECT_URI=http://localhost:8000/api/saxo/auth/callback
-SAXO_ENVIRONMENT=sim   # or "live"
-SAXO_TOKEN_ENCRYPTION_KEY=<32-byte random hex>
+**Integration with existing architecture:**
 
-# Derived in config.py:
-SAXO_BASE_URL = "https://gateway.saxobank.com/sim/openapi" if SAXO_ENVIRONMENT == "sim"
-              else "https://gateway.saxobank.com/openapi"
-SAXO_AUTH_URL = f"{SAXO_BASE_URL}/...authorize"  # See Saxo docs for exact path
-SAXO_TOKEN_URL = f"{SAXO_BASE_URL}/...token"
-```
+This is the only v1.1 feature that requires a new Supabase table, because view counts are user-generated data that must persist across sessions and backend restarts.
 
----
-
-## 10. Database Schema Summary
-
-New Supabase tables required:
+**Data model:**
 
 ```sql
--- OAuth CSRF state (short-lived)
-CREATE TABLE saxo_oauth_state (
-  state       TEXT PRIMARY KEY,
-  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  expires_at  TIMESTAMPTZ NOT NULL
+-- New migration: 011_create_stock_views.sql
+CREATE TABLE stock_views (
+  symbol      TEXT NOT NULL,
+  viewed_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  user_id     UUID REFERENCES auth.users(id) ON DELETE SET NULL  -- NULL for anonymous
 );
 
--- Encrypted token storage (one row per user)
-CREATE TABLE saxo_tokens (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id         UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
-  access_token    TEXT NOT NULL,
-  refresh_token   TEXT NOT NULL,
-  token_type      TEXT NOT NULL DEFAULT 'Bearer',
-  expires_at      TIMESTAMPTZ NOT NULL,
-  scope           TEXT,
-  saxo_client_key TEXT,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- Index for fast aggregation
+CREATE INDEX idx_stock_views_symbol_time ON stock_views (symbol, viewed_at DESC);
 
--- Instrument identifier mapping (persistent, grows as positions are seen)
-CREATE TABLE saxo_instrument_map (
-  uic             INTEGER NOT NULL,
-  asset_type      TEXT NOT NULL,
-  saxo_symbol     TEXT NOT NULL,
-  saxo_exchange   TEXT,
-  yahoo_ticker    TEXT,
-  resolved        BOOLEAN NOT NULL DEFAULT FALSE,
-  last_verified   TIMESTAMPTZ,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (uic, asset_type)
-);
+-- Materialized view (or computed on-demand) for top stocks
+-- Option: compute in Python from raw rows; avoid adding a scheduled job
 ```
 
-RLS policies:
-- `saxo_oauth_state`: service role only (no direct client access)
-- `saxo_tokens`: service role only (backend reads/writes, never exposed to frontend)
-- `saxo_instrument_map`: read by all authenticated users (not user-specific data), write by service role
+**Alternative to a raw events table:** A simpler `stock_view_counts` table with an upsert-increment pattern avoids unbounded row growth:
+
+```sql
+-- Simpler approach: aggregated counts
+CREATE TABLE stock_view_counts (
+  symbol        TEXT PRIMARY KEY,
+  view_count    INTEGER NOT NULL DEFAULT 0,
+  last_viewed   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- No RLS needed — read by all, write by backend only (service role)
+```
+
+The raw events table is preferable if time-windowed queries ("most viewed this week") are needed. The aggregated counts table is preferable for simplicity. **Recommendation: start with aggregated counts; add time-windowing if needed.**
+
+**Write path (tracking):**
+
+Every time a user visits `/stock/{symbol}`, the frontend fires a background POST to record the view. This should be non-blocking (fire-and-forget from the frontend, async in the backend).
+
+```
+User visits /stock/AAPL
+→ Next.js page mounts
+→ useStock hook fires (existing — fetches analysis data)
+→ New: fire-and-forget POST /api/views/{symbol} (no await, no loading state)
+→ FastAPI ViewsRouter records to Supabase (no response body needed)
+```
+
+**Read path (most-viewed list):**
+
+```
+GET /api/views/top?limit=10&period=7d
+
+→ ViewsService.get_top_viewed(limit, period)
+    → Query Supabase stock_view_counts (or stock_views with time filter)
+    → Return sorted list with view counts
+```
+
+**New backend components:**
+
+| Component | Type | Location | Description |
+|-----------|------|----------|-------------|
+| `ViewsService` | New service | `backend/services/views_service.py` | Writes view events to Supabase, reads top-viewed aggregations |
+| `views` router | New router | `backend/routers/views.py` | `POST /api/views/{symbol}`, `GET /api/views/top` |
+| `StockViewCount`, `TopViewedResponse` | New models | `backend/models/views.py` | Pydantic response shapes |
+
+**New frontend components:**
+
+| Component | Type | Location | Description |
+|-----------|------|----------|-------------|
+| `MostViewedList` | New component | `frontend/src/components/discover/MostViewedList.tsx` | Displays top-viewed stocks with view counts |
+| `useTrackView` | New hook | `frontend/src/hooks/useTrackView.ts` | Fire-and-forget POST on stock page mount |
+| `useTopViewed` | New hook | `frontend/src/hooks/useTopViewed.ts` | Fetches top-viewed list for Discover page |
+
+**Modified components:**
+
+| Component | Change | Reason |
+|-----------|--------|--------|
+| `frontend/src/app/stock/[symbol]/page.tsx` | Call `useTrackView(symbol)` on mount | Record every stock page view |
+| `backend/main.py` | Register views router | Mount new router |
+
+**New Supabase migration:**
+
+```
+supabase/migrations/011_create_stock_views.sql
+```
+
+**Privacy note:** For a personal-use platform, tracking is benign. If the platform ever becomes multi-user, consider making tracking opt-in. For now, `user_id` is nullable so anonymous visits can still be counted.
 
 ---
 
-## 11. Build Order
+## 3. Full Integration Diagram
 
-Components have clear dependencies. Build in this order to avoid blocking:
-
-### Phase 1 — Foundation (no UI yet)
-1. **Database schema** — create `saxo_tokens`, `saxo_oauth_state`, `saxo_instrument_map` in Supabase
-2. **Environment config** — add Saxo vars to `.env` and `backend/config.py`
-3. **`SaxoTokenService`** — encrypt/store/retrieve/refresh tokens (can be tested with unit tests against mock Supabase)
-4. **`SaxoClient`** — authenticated HTTP client wrapping httpx (depends on SaxoTokenService)
-
-### Phase 2 — OAuth flow
-5. **`saxo` router** — `/auth/connect` and `/auth/callback` endpoints (depends on SaxoClient + SaxoTokenService)
-6. **Next.js OAuth bridge** — `/saxo/connect/page.tsx` and `/saxo/callback/page.tsx` + `useSaxoConnect` hook
-7. **Verify end-to-end OAuth** with Saxo SIM — can now get tokens
-
-### Phase 3 — Portfolio data
-8. **`SaxoPortfolioService`** — positions + balance calls (depends on SaxoClient)
-9. **`SaxoInstrumentMapper`** — Uic → Yahoo ticker resolution (depends on SaxoClient + DB)
-10. **`SaxoMarketService`** — real-time quotes (depends on SaxoClient + SaxoCache)
-11. **`saxo_cache.py`** — TTL cache for Saxo data (no dependencies, can be built any time)
-12. **Pydantic models** (`models/saxo.py`) — define all Saxo models (no dependencies, build early)
-13. **Backend routes** — `/portfolio/positions`, `/portfolio/balance`, `/status`, `/auth/disconnect`
-
-### Phase 4 — Frontend integration
-14. **TypeScript types** (`types/saxo.ts`) — mirror backend Pydantic models
-15. **Frontend API client** (`lib/api/saxo.ts`) — fetch wrapper for Saxo endpoints
-16. **`useSaxoStatus`** + **`useSaxoPortfolio`** hooks (depend on API client)
-17. **`SaxoBalanceSummary`** + **`SaxoPositionsTable`** + **`SaxoPositionRow`** components
-18. **`SaxoConnectButton`** + **`SaxoStatusBadge`** (depend on useSaxoStatus)
-19. **Modify `portfolio/page.tsx`** — add Saxo tab using SaxoPortfolioSection
-20. **Add to `settings/page.tsx`** — Brokerage Connections section
-
-### Phase 5 — Enrichment + polish
-21. **Wire TA signals into SaxoPositionRow** — call existing `/api/stock/{yahoo_ticker}/signal` for mapped instruments
-22. **SaxoUnmappedBadge** — UI for instruments without Yahoo ticker
-23. **Polling interval + error handling** — debounce, backoff, user-facing error states
-24. **Watchlist sync** — cross-reference Saxo positions with existing watchlist
-
----
-
-## 12. Key Architectural Decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| Backend owns OAuth flow, redirect URI points to FastAPI | Client secrets never touch the browser; token exchange is fully server-side |
-| Encrypted storage in Supabase, not backend memory | Survives Docker restarts; tied to user; auditable |
-| Application-layer encryption (not Postgres column encryption) | Simpler key management; encryption key in env var; portable |
-| SIM environment first, feature-flagged by env var | Zero financial risk during development; identical API surface |
-| Lazy Uic→Yahoo ticker resolution with persistent DB cache | Avoids upfront mapping work; resolves on first encounter; grows naturally |
-| Separate SaxoCache instance, not shared with Yahoo cache | Prevents key collisions; different TTL semantics; different primary key (user_id vs symbol) |
-| Polling at 60s, not WebSocket streaming | Simpler implementation; acceptable latency for portfolio view; streaming as v2 |
-| Saxo tab alongside manual portfolio, not replacing it | Yahoo Finance covers non-Saxo instruments; both views have value |
-| Supabase JWT passed from frontend → Next.js API route → FastAPI | Consistent with existing auth pattern; no new auth mechanism introduced |
+```
+                    ┌─────────────────────────────────────────────┐
+                    │           Browser / Next.js Frontend        │
+                    │                                             │
+                    │  /discover page (NEW)                       │
+                    │    ├── StockScreener (NEW)                  │
+                    │    ├── MostTradedList (NEW)                 │
+                    │    ├── SectorPerformanceGrid (NEW)          │
+                    │    └── MostViewedList (NEW)                 │
+                    │                                             │
+                    │  /stock/[symbol] page (MODIFIED)            │
+                    │    └── useTrackView hook (NEW, fire+forget) │
+                    └──────────────┬──────────────────────────────┘
+                                   │ HTTP
+                    ┌──────────────▼──────────────────────────────┐
+                    │           FastAPI Backend                    │
+                    │                                             │
+                    │  NEW routers:                               │
+                    │    /api/screener      ← ScreenerService     │
+                    │    /api/market/*      ← MarketTrendsService │
+                    │    /api/views/*       ← ViewsService        │
+                    │                                             │
+                    │  EXISTING (reused, not modified):           │
+                    │    DataFetcher ──────┐                      │
+                    │    IndustryService   ├──► StockCache (24h)  │
+                    │    SignalEngine      │                      │
+                    │    RecommendationsService                   │
+                    └──────────────┬──────────────────────────────┘
+                                   │
+                    ┌──────────────▼──────────────────────────────┐
+                    │  Data Sources                               │
+                    │                                             │
+                    │  yfinance (or Saxo) ── stock info, OHLCV   │
+                    │  Supabase            ── stock_view_counts   │
+                    │                         (NEW table)         │
+                    └─────────────────────────────────────────────┘
+```
 
 ---
 
-*Written: 2026-03-28*
+## 4. New vs Modified — Complete List
+
+### New backend files
+
+| File | Purpose |
+|------|---------|
+| `backend/services/screener_service.py` | Filter UNIVERSE_STOCKS by sector, market-cap, signal |
+| `backend/services/market_trends_service.py` | Aggregate volume ratios and sector performance |
+| `backend/services/views_service.py` | Write/read stock view counts from Supabase |
+| `backend/routers/screener.py` | `GET /api/screener` |
+| `backend/routers/market.py` | `GET /api/market/most-traded`, `GET /api/market/sector-performance` |
+| `backend/routers/views.py` | `POST /api/views/{symbol}`, `GET /api/views/top` |
+| `backend/models/screener.py` | `ScreenerResult`, `ScreenerResponse` |
+| `backend/models/market.py` | `MostTradedStock`, `SectorPerformance`, `MarketTrendsResponse` |
+| `backend/models/views.py` | `StockViewCount`, `TopViewedResponse` |
+
+### Modified backend files
+
+| File | Change |
+|------|--------|
+| `backend/main.py` | Add 3 new `app.include_router()` calls |
+| `backend/models/stock.py` | Add `volume` and `avg_volume` fields to `StockInfo` if absent |
+| `backend/services/data_fetcher.py` | Expose `regularMarketVolume`/`averageVolume` from yfinance in `get_stock_info()` if not already mapped |
+| `backend/config.py` | Add `CACHE_TTL_MARKET_TRENDS = 15 * 60` constant |
+
+### New frontend files
+
+| File | Purpose |
+|------|---------|
+| `frontend/src/app/discover/page.tsx` | New Discover page (screener + market trends tabs) |
+| `frontend/src/components/discover/StockScreener.tsx` | Screener container |
+| `frontend/src/components/discover/ScreenerFilters.tsx` | Sector/market-cap filter controls |
+| `frontend/src/components/discover/ScreenerResultsTable.tsx` | Paginated results table |
+| `frontend/src/components/discover/MostTradedList.tsx` | High-volume stocks list |
+| `frontend/src/components/discover/SectorPerformanceGrid.tsx` | Sector performance heatmap/ranking |
+| `frontend/src/components/discover/MostViewedList.tsx` | Platform most-viewed stocks |
+| `frontend/src/hooks/useScreener.ts` | Screener data fetching + filter state |
+| `frontend/src/hooks/useMarketTrends.ts` | Most-traded + sector performance fetching |
+| `frontend/src/hooks/useTrackView.ts` | Fire-and-forget view tracking on stock page mount |
+| `frontend/src/hooks/useTopViewed.ts` | Top-viewed stocks fetching for Discover page |
+| `frontend/src/app/api/screener/route.ts` | Next.js proxy route → backend |
+| `frontend/src/app/api/market/most-traded/route.ts` | Next.js proxy route → backend |
+| `frontend/src/app/api/market/sector-performance/route.ts` | Next.js proxy route → backend |
+| `frontend/src/app/api/views/[symbol]/route.ts` | Next.js proxy route → backend |
+| `frontend/src/app/api/views/top/route.ts` | Next.js proxy route → backend |
+
+### Modified frontend files
+
+| File | Change |
+|------|--------|
+| `frontend/src/app/stock/[symbol]/page.tsx` | Add `useTrackView(symbol)` call on mount |
+| `frontend/src/types/index.ts` | Add `ScreenerResult`, `MostTradedStock`, `SectorPerformance`, `StockViewCount` types |
+| Navigation component (layout) | Add "Discover" nav link |
+
+### New Supabase migrations
+
+| File | Purpose |
+|------|---------|
+| `supabase/migrations/011_create_stock_views.sql` | `stock_view_counts` table |
+
+---
+
+## 5. New API Endpoints
+
+### Screener
+
+```
+GET /api/screener
+  Query params:
+    sector: string          (industry ID from IndustryService, optional)
+    market_cap_min: int     (USD, optional)
+    market_cap_max: int     (USD, optional)
+    signal: string          ("buy" | "sell" | "neutral", optional)
+    sort: string            ("signal_score" | "market_cap" | "daily_change", default: "signal_score")
+    order: string           ("asc" | "desc", default: "desc")
+    limit: int              (default 50, max 100)
+    offset: int             (default 0)
+  Response: ScreenerResponse { results: ScreenerResult[], total: int, page: int }
+```
+
+### Market Trends
+
+```
+GET /api/market/most-traded
+  Query params:
+    limit: int     (default 20, max 50)
+    asset_type: string  ("stock" | "etf" | "all", default: "all")
+  Response: { stocks: MostTradedStock[], generated_at: string }
+
+GET /api/market/sector-performance
+  Response: { sectors: SectorPerformance[], generated_at: string }
+```
+
+### View Tracking
+
+```
+POST /api/views/{symbol}
+  Body: {} (empty — symbol from path, user_id from auth header if present)
+  Response: 204 No Content
+
+GET /api/views/top
+  Query params:
+    limit: int    (default 10, max 50)
+    period: string  ("1d" | "7d" | "30d", default: "7d")
+  Response: { stocks: StockViewCount[], period: string }
+```
+
+---
+
+## 6. New Supabase Table
+
+```sql
+-- supabase/migrations/011_create_stock_views.sql
+
+CREATE TABLE stock_view_counts (
+  symbol        TEXT PRIMARY KEY,
+  view_count    INTEGER NOT NULL DEFAULT 0,
+  last_viewed   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- No RLS: read by all (it's aggregated, non-personal), write by service role only
+-- Backend uses SUPABASE_SERVICE_ROLE_KEY for upserts
+
+-- Upsert pattern used by ViewsService:
+-- INSERT INTO stock_view_counts (symbol, view_count, last_viewed)
+-- VALUES ($1, 1, NOW())
+-- ON CONFLICT (symbol) DO UPDATE
+--   SET view_count = stock_view_counts.view_count + 1,
+--       last_viewed = NOW();
+```
+
+---
+
+## 7. Data Source Evaluation: Impact on Architecture
+
+The data source evaluation determines whether `DataFetcher` continues to use yfinance or is partially/fully replaced by the Saxo Chart API. The impact differs per feature:
+
+| Feature | yfinance stays | Saxo replaces yfinance |
+|---------|---------------|----------------------|
+| Stock screener | Uses existing DataFetcher directly | Needs Uic resolution for every UNIVERSE_STOCKS symbol before fetching |
+| Most-traded | Uses existing `regularMarketVolume` from yfinance | Saxo volume comes from chart bars — requires aggregation; more complex |
+| Sector performance | Uses existing `daily_change_percent` from yfinance | Saxo `/ref/v1/instruments` provides sector info; price change from chart bars |
+| Most-viewed | Independent of data source | Independent of data source |
+
+**If Saxo replaces yfinance:**
+- `DataFetcher` must be refactored (or a new `SaxoDataFetcher` created as an alternative implementation)
+- A `UNIVERSE_STOCKS` → Saxo Uic mapping layer is needed (currently `SaxoInstrumentMapper` only resolves from Saxo → Yahoo direction)
+- All three market data features are blocked until the mapping layer is complete
+- Estimated additional complexity: 2–3 days minimum
+
+**If yfinance stays (partial dual-source):**
+- Features B, C, D can all start immediately after Feature A completes
+- Saxo continues to serve only portfolio/real-time data for held positions
+- DataFetcher is unchanged; no blocking dependency
+
+**Recommendation from architecture perspective:** Start with yfinance staying for screener and market trends. The data source evaluation for the signal/indicator pipeline is a separate, larger concern that should not block v1.1 features. Record the decision and defer the full replacement to v1.2 if warranted.
+
+---
+
+## 8. Suggested Build Order
+
+The data source evaluation must come first because its outcome determines implementation choices for all market data features. Beyond that, the features are mostly independent of each other and can be built in any order. The suggested sequence minimizes rework risk.
+
+### Step 0 — Data Source Evaluation (gates everything)
+
+**Deliverable:** Decision record at `.planning/decisions/DATA_SOURCE.md`
+
+1. Test Saxo chart API (`GET /chart/v3/charts`) for 10 UNIVERSE_STOCKS symbols
+2. Compare OHLCV values vs yfinance for the same date range
+3. Test volume data availability and format differences
+4. Assess Saxo sector classification quality vs `SECTOR_TO_INDUSTRY` mapping
+5. Document decision: keep yfinance / replace with Saxo / hybrid
+6. **Gate: decision recorded before writing any feature code**
+
+---
+
+### Step 1 — Backend Foundations (all three data features)
+
+These can be built in parallel once Step 0 completes:
+
+**1a — Expose volume fields in DataFetcher + StockInfo:**
+- Add `volume` (int) and `avg_volume` (int) fields to `StockInfo` model
+- Map `regularMarketVolume` and `averageVolume` from yfinance `ticker.info`
+- This unblocks Most-Traded; zero risk to existing endpoints
+
+**1b — Create Supabase migration 011:**
+- `stock_view_counts` table
+- This unblocks Most-Viewed; no backend code change needed yet
+
+**1c — Add `CACHE_TTL_MARKET_TRENDS` to config.py:**
+- One-line change, unblocks MarketTrendsService
+
+---
+
+### Step 2 — Backend Services
+
+**2a — ViewsService + views router**
+- Simplest service: upsert to Supabase, query top-N
+- No dependency on other new services
+- Build and test first — it's the lowest risk and gives tracking infrastructure immediately
+
+**2b — MarketTrendsService + market router**
+- Depends on Step 1a (volume fields in StockInfo)
+- `get_most_traded()`: scan UNIVERSE_STOCKS, sort by volume ratio
+- `get_sector_performance()`: scan UNIVERSE_STOCKS, group by sector via IndustryService
+
+**2c — ScreenerService + screener router**
+- Depends on 2b being designed (shares the scan-UNIVERSE_STOCKS pattern)
+- More complex: multi-parameter filtering, pagination, signal integration
+- Reuses SignalEngine output already computed by RecommendationsService
+
+---
+
+### Step 3 — Register Routers
+
+- Add three `app.include_router()` calls to `backend/main.py`
+- Verify all new endpoints respond at correct paths
+- Test with curl before building frontend
+
+---
+
+### Step 4 — Frontend Infrastructure
+
+**4a — TypeScript types:**
+- Add `ScreenerResult`, `MostTradedStock`, `SectorPerformance`, `StockViewCount` to `types/index.ts`
+
+**4b — Next.js API proxy routes:**
+- Create the 5 Next.js route handlers that delegate to FastAPI
+- Pattern already established: copy from `frontend/src/app/api/recommendations/`
+
+**4c — Custom hooks:**
+- `useTrackView` (fire-and-forget, needed for Step 5 immediately)
+- `useTopViewed`
+- `useMarketTrends`
+- `useScreener`
+
+---
+
+### Step 5 — Wire View Tracking into Stock Page
+
+- Import `useTrackView` in `frontend/src/app/stock/[symbol]/page.tsx`
+- Call on mount: `useTrackView(symbol)`
+- No UI change — purely a side-effect hook
+- Deploy early so view data accumulates while other features are built
+
+---
+
+### Step 6 — Discover Page + Components
+
+**6a — Create `/discover` page** with tab structure (Screener | Market Trends | Most Viewed)
+
+**6b — Build Market Trends components:**
+- `MostTradedList`
+- `SectorPerformanceGrid`
+- Connect via `useMarketTrends`
+
+**6c — Build Most Viewed component:**
+- `MostViewedList`
+- Connect via `useTopViewed`
+
+**6d — Build Screener components:**
+- `ScreenerFilters` (sector dropdown, market-cap range, signal filter)
+- `ScreenerResultsTable` (sortable, paginated)
+- `StockScreener` container
+- Connect via `useScreener`
+
+---
+
+### Step 7 — Navigation + Home Page
+
+- Add "Discover" link to navigation
+- Optionally update `page.tsx` home to replace hardcoded `POPULAR_STOCKS` with dynamic most-viewed data
+
+---
+
+### Dependencies Graph
+
+```
+Step 0 (data source decision)
+  └─► Step 1a (volume fields)     ──► Step 2b (market trends service)  ──► Step 4 ──► Step 6b
+  └─► Step 1b (migration 011)     ──► Step 2a (views service)          ──► Step 4 ──► Step 5 ──► Step 6c
+  └─► Step 1c (config constant)   ──► Step 2b
+                                  ──► Step 2c (screener service)       ──► Step 4 ──► Step 6d
+                                  ──► Step 3 (register routers)
+```
+
+---
+
+## 9. Architecture Risks and Mitigations
+
+| Risk | Severity | Mitigation |
+|------|----------|-----------|
+| UNIVERSE_STOCKS scan is slow if cache is cold (200+ yfinance calls) | Medium | Cache is already 24h; market trends service skips symbols with cache miss, returns partial results with a `partial: true` flag |
+| yfinance rate limiting on cold cache | Medium | Existing `DataFetcher` already handles this; `RecommendationsService` uses `ThreadPoolExecutor` for concurrency — reuse the same pattern |
+| `stock_view_counts` grows to large number of symbols over time | Low | It's keyed by symbol (text PK), bounded by number of unique symbols viewed — realistically under 10,000 rows forever |
+| Data source evaluation reveals Saxo gap in coverage | Medium | Default to yfinance fallback for missing symbols; document which symbols are Saxo-only, which are Yahoo-only |
+| Most-traded "volume ratio" is misleading for different market hours | Low | Add `market_status` from existing `get_exchange_status()` to context; note in UI that volumes are exchange-hours-dependent |
+| View tracking fires on every re-render if not guarded | Medium | `useTrackView` must use `useEffect` with empty deps `[]` so it fires once per page mount, not on re-renders |
+
+---
+
+## 10. Reuse Summary
+
+The v1.1 features are deliberately additive. The table below shows what existing code is reused without modification:
+
+| Existing Component | Reused By |
+|-------------------|-----------|
+| `DataFetcher.get_stock_info()` | ScreenerService, MarketTrendsService (reads cached StockInfo) |
+| `IndustryService.classify_stock()` | ScreenerService (sector filter), MarketTrendsService (sector grouping) |
+| `SignalEngine` (via cached output) | ScreenerService (signal filter and score) |
+| `RecommendationsService` scan pattern | MarketTrendsService follows the same scan-and-aggregate pattern |
+| `StockCache` (24h company info TTL) | All three new services hit the cache before fetching |
+| `fetchJSON<T>` in `frontend/src/lib/api.ts` | All new hooks use the same fetch wrapper |
+| `IndustryFilter` component | ScreenerFilters can reuse existing industry filter UI |
+| `useIndustryFilter` hook | ScreenerFilters state management reuses this hook |
+| Supabase service role client pattern | ViewsService follows the same Supabase write pattern as notification_service.py |
+
+---
+
+*Last updated: 2026-04-05*

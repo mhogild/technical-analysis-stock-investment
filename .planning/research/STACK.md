@@ -1,435 +1,320 @@
-# Saxo Bank OpenAPI Integration Stack
+# Stack Research: Stock Discovery & Market Trends (v1.1)
 
-*Research date: 2026-03-28*
-*Scope: Integrating Saxo OpenAPI into the existing Next.js 15 + FastAPI + Supabase platform*
+*Research date: 2026-04-05*
+*Scope: Stock screener, most-traded stocks, sector performance, most-viewed tracking — adding to existing Next.js 15 + FastAPI + Supabase + yfinance platform*
 
 ---
 
 ## Summary Verdict
 
-The cleanest integration path is: **no Saxo-specific wrapper library in production code**. Use `httpx` (already in requirements.txt) for all Saxo API calls from FastAPI, `authlib` for the OAuth 2.0 PKCE flow handling, and Supabase as the encrypted token store. The frontend (Next.js) never touches Saxo tokens — it proxies everything through the FastAPI backend. The `saxo_openapi` PyPI package is useful as a reference for endpoint naming but is too poorly maintained to depend on in production.
+**No new backend Python packages are required.** Every new feature can be built using capabilities already in the installed stack:
+
+- `yfinance>=1.1.0` (current pin) — already provides `Screener`, `EquityQuery`, `Sector`, and `Industry` classes. These were introduced in 0.2.x and are stable in 1.0+ (released January 2026). Bump the pin to `yfinance>=1.0.0` to use the stable API without risk of pulling 0.1.x regression behaviour.
+- `pandas>=2.3.2` — unchanged, handles all DataFrame operations from Sector/Screener responses.
+- Supabase (already in stack) — correct store for most-viewed tracking; a single lightweight table is all that is needed.
+
+**One optional frontend package** (`react-query` or `@tanstack/query`) is worth evaluating for the polling-heavy market trends views, but is not required — the existing `useState`/`useEffect` hook pattern suffices if complexity is kept low.
+
+**Data source verdict: yfinance for all discovery features, Saxo for portfolio-only data.** Details in Section 5.
 
 ---
 
-## 1. Saxo API Wrapper Libraries
+## 1. Stock Screener (Sector / Industry / Market-Cap Filtering)
 
-### 1.1 saxo_openapi (hootnot) — Reference Only
+### What the existing codebase already has
 
-- **PyPI**: `saxo-openapi` (0.8.3)
-- **GitHub**: https://github.com/hootnot/saxo_openapi
-- **Last meaningful commit**: November 2023
-- **Status**: Effectively unmaintained. Single maintainer, no activity in 18+ months as of March 2026.
+- `backend/services/industry_service.py` — 11 GICS-aligned sector buckets + ETF category buckets, `classify_stock()` maps any yfinance sector string to an internal ID.
+- `backend/routers/industries.py` — `GET /api/industries` endpoint, already wired.
+- `backend/services/recommendations_service.py` — scans a static `UNIVERSE_STOCKS` list with the existing signal engine; supports `industries` filter already.
 
-**What it does well:**
-- Maps every Saxo REST endpoint to a Python request class (e.g., `portfolio.Accounts`, `port.Positions`).
-- Useful as API reference documentation — the class names map directly to Saxo's service group structure.
-- Includes Jupyter notebooks covering authentication and portfolio endpoints.
+The recommendations endpoint is the closest existing analog to a screener. The screener feature extends this pattern rather than replacing it.
 
-**Why NOT to use it in production:**
-- Last release (0.8.3) predates several Saxo API changes. Saxo's SIM environment may run a newer API version.
-- Uses the `requests` library synchronously — incompatible with FastAPI's async architecture without running in a thread pool.
-- No built-in token refresh logic. You would need to bolt that on.
-- No type annotations; brittle for a typed Python codebase.
-- Installing it as a dependency adds a stale, single-maintainer package to your supply chain.
+### New capability: `yfinance.EquityQuery` + `yfinance.Screener`
 
-**Recommended use**: Read the source and docs to understand endpoint paths and parameter shapes. Do not `pip install` it in the production service.
+Introduced in yfinance 0.2.x, stable since 1.0.0 (January 2026). The `EquityQuery` class constructs filter trees; `Screener` (or `yf.screen()`) executes them against Yahoo Finance's screener API.
 
-**Confidence**: High — maintenance gap is observable directly from GitHub commit history.
+**Supported filter fields relevant to this milestone:**
 
-### 1.2 saxo-openapi-client-python (toanalien)
+| Field name (EquityQuery) | Use case |
+|--------------------------|----------|
+| `sector` | Filter by GICS sector string (e.g. `"Technology"`) |
+| `industry` | Filter by industry string |
+| `intradaymarketcap` | Market-cap range (large/mid/small cap buckets) |
+| `lastclosemarketcap.lasttwelvemonths` | Trailing 12-month market cap |
+| `region` | Country/region filter (e.g. `"us"`, `"europe"`) |
+| `exchange` | Limit to specific exchange |
 
-- **GitHub**: https://github.com/toanalien/saxo-openapi-client-python
-- **Status**: Thin fork/rewrite, very low community adoption.
+**Operators:** `EQ`, `IS-IN`, `BTWN`, `GT`, `LT`, `GTE`, `LTE` — combinable with `AND`/`OR`.
 
-**Verdict**: Skip. No meaningful advantage over rolling your own httpx client.
-
-### 1.3 No Official Saxo Python SDK
-
-Saxo Bank does not publish an official Python SDK. Their developer portal documents the REST API directly. Any wrapper library is community-maintained.
-
----
-
-## 2. Recommended Backend Libraries (Python / FastAPI)
-
-### 2.1 httpx — Primary HTTP Client
-
-- **Already in use**: `httpx==0.28.1` is in `backend/requirements.txt`.
-- **Use for**: All Saxo REST API calls from FastAPI.
-- **Pattern**: Single long-lived `AsyncClient` instance, initialized at app startup via FastAPI lifespan, shared via dependency injection.
+**Usage pattern:**
 
 ```python
-# Recommended pattern (FastAPI lifespan)
-from contextlib import asynccontextmanager
-import httpx
-from fastapi import FastAPI
+import yfinance as yf
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    app.state.saxo_client = httpx.AsyncClient(
-        base_url="https://gateway.saxobank.com/sim/openapi",  # swap for live
-        timeout=httpx.Timeout(10.0, connect=5.0),
-        headers={"Accept": "application/json"},
-    )
-    yield
-    await app.state.saxo_client.aclose()
-
-app = FastAPI(lifespan=lifespan)
+# Sector + market-cap filter example
+sector_q = yf.EquityQuery('eq', ['sector', 'Technology'])
+cap_q = yf.EquityQuery('gt', ['intradaymarketcap', 10_000_000_000])
+combined = yf.EquityQuery('and', [sector_q, cap_q])
+result = yf.screen(combined, sortField='intradaymarketcap', sortAsc=False)
 ```
 
-**Why not `requests`**: Synchronous; blocks FastAPI's event loop. Requires `run_in_executor` workaround.
-**Why not `aiohttp`**: httpx already installed, provides identical async performance, cleaner API, better timeout handling.
+`result` is a dict with a `'quotes'` key containing a list of instrument dicts (symbol, name, market cap, sector, industry, price, change %).
 
-**Confidence**: High.
+**Integration point:** New `backend/services/screener_service.py` + `backend/routers/screener.py`. The existing `IndustryService.classify_stock()` maps between external sector strings and internal IDs, so there is no schema change needed.
 
-### 2.2 authlib — OAuth 2.0 PKCE Flow
+**What NOT to add:**
+- Do not replace the existing `UNIVERSE_STOCKS` static list approach in `recommendations_service.py` with Screener. They serve different purposes: recommendations are pre-computed with TA signals; the screener is on-demand discovery without TA signals.
+- Do not add a separate screener npm package on the frontend. The existing `fetchJSON<T>` API wrapper handles the new endpoint.
 
-- **PyPI**: `Authlib>=1.3.0` (current stable: 1.3.x as of late 2024, 1.6.x expected latest)
-- **Install**: `pip install authlib`
-- **Use for**: Constructing the PKCE authorization URL, handling the token exchange, and refreshing tokens. NOT for making Saxo API calls (that is httpx's job).
-
-authlib provides `AsyncOAuth2Client` built on httpx, with an `update_token` callback for persisting refreshed tokens. It handles:
-- PKCE code verifier/challenge generation (SHA-256/S256)
-- Authorization URL construction
-- Token exchange (authorization code → access + refresh tokens)
-- Automatic token refresh on expiry with `token_endpoint_auth_method`
-
-```python
-from authlib.integrations.httpx_client import AsyncOAuth2Client
-
-client = AsyncOAuth2Client(
-    client_id=settings.SAXO_APP_KEY,
-    client_secret=settings.SAXO_APP_SECRET,
-    redirect_uri=settings.SAXO_REDIRECT_URI,
-    update_token=persist_token_to_supabase,  # callback
-)
-uri, state, code_verifier = client.create_authorization_url(
-    "https://sim.logonvalidation.net/authorize",
-    code_challenge_method="S256",
-)
-```
-
-**Why not python-jose or PyJWT alone**: Those only decode/verify JWTs. They do not handle the OAuth flow, PKCE generation, or token refresh.
-**Why not oauthlib directly**: authlib wraps oauthlib with an httpx integration and a cleaner async API.
-
-**Confidence**: High.
-
-### 2.3 cryptography — Token Encryption at Rest
-
-- **PyPI**: `cryptography>=42.0.0`
-- **Use for**: Encrypting Saxo tokens before storing in Supabase. Use Fernet (symmetric, authenticated encryption).
-- Derive the encryption key from an environment variable (`SAXO_TOKEN_ENCRYPTION_KEY`) using `Fernet`.
-
-**Why**: Supabase row-level security protects at the database layer, but a compromised Supabase service key would expose plaintext tokens. Encrypting in the application layer adds defense-in-depth.
-
-**Confidence**: Medium-High. Standard practice for storing third-party OAuth tokens server-side; adds minimal complexity.
-
-### 2.4 tenacity — Retry Logic for Saxo API Calls
-
-- **PyPI**: `tenacity>=8.2.0`
-- **Use for**: Wrapping Saxo API calls with retry-on-transient-failure logic (429 rate limit, 503 temporary unavailability).
-
-```python
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-
-@retry(
-    retry=retry_if_exception_type(httpx.HTTPStatusError),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=1, max=10),
-)
-async def fetch_saxo_positions(client: httpx.AsyncClient, token: str) -> dict:
-    ...
-```
-
-**Confidence**: Medium-High. Optional but strongly recommended given Saxo's 120 req/min session limit.
+**Rate limit / stability note:** `yfinance.Screener` hits Yahoo Finance's non-public API endpoint. It is not rate-limited in documented terms, but Yahoo's anti-scraping headers can cause intermittent failures. Wrap calls with the existing `tenacity` retry pattern already used in `saxo_client.py`. Cache screener results for 15 minutes (discovery data, not real-time).
 
 ---
 
-## 3. OAuth 2.0 Implementation Approach
+## 2. Most-Traded Stocks (Volume / Activity)
 
-### 3.1 Which Flow to Use
+### What yfinance provides
 
-Saxo Bank supports three OAuth 2.0 flows:
-- **Authorization Code Grant** — for server-side web apps with a client secret
-- **Authorization Code Grant with PKCE** — for native apps or SPAs without a server-side secret
-- **Certificate-Based Authentication** — enterprise only, requires a certificate, not available on developer accounts
+`yfinance.PREDEFINED_SCREENER_QUERIES` contains a `'most_actives'` key. The query filters for US equities with a minimum intraday volume of 5,000,000, sorted descending by volume. It returns the same dict structure as a custom `EquityQuery` screen.
 
-**Recommended: Authorization Code Grant (standard, with client secret)**
+```python
+import yfinance as yf
 
-Rationale: The FastAPI backend acts as a confidential client — it stores the `client_secret` server-side and handles the token exchange. PKCE adds no security benefit when the client secret is already server-side. However, authlib supports both, so PKCE can be added as belt-and-suspenders if preferred.
-
-If you prefer defense-in-depth or want to avoid storing the client secret at all: use **Authorization Code + PKCE**. Both are supported by Saxo.
-
-**Confidence**: High — confirmed by Saxo developer portal documentation.
-
-### 3.2 Authorization Flow Sequence
-
-```
-User browser           Next.js frontend        FastAPI backend           Saxo
-     |                       |                       |                     |
-     |-- Click "Connect" --> |                       |                     |
-     |                       |-- GET /saxo/auth/start -->                  |
-     |                       |                  Build auth URL             |
-     |                       |<-- 302 redirect to Saxo auth URL --         |
-     |<-- redirect ---        |                       |                     |
-     |                                                |                     |
-     |-- Login at Saxo SSO ------------------------------------------------>
-     |<-- redirect to http://localhost:8000/saxo/auth/callback?code=xxx ---
-     |                       |                       |                     |
-     |                       |         POST /token (code exchange)-------->|
-     |                       |         <-- access_token + refresh_token -- |
-     |                       |    Store encrypted tokens in Supabase       |
-     |                       |<-- 302 redirect to frontend dashboard --    |
+result = yf.screen('most_actives')
+# result['quotes'] -> list of dicts with symbol, name, regularMarketVolume, regularMarketChangePercent, etc.
 ```
 
-Key implementation notes:
-- The redirect URI must be registered in the Saxo developer portal. For local dev: `http://localhost:8000/saxo/auth/callback`.
-- The `state` parameter (CSRF protection) must be validated on callback. Store it temporarily in a server-side session or an httpOnly cookie with a 5-minute TTL.
-- Token exchange happens **in the backend** — the frontend never sees Saxo tokens.
+Additional relevant predefined keys: `'day_gainers'`, `'day_losers'` — useful for a broader "market pulse" section.
 
-### 3.3 Saxo OAuth Endpoints
+**Scope for this milestone:** `most_actives` only. `day_gainers`/`day_losers` can be added without any stack change.
 
-| Environment | Authorization URL | Token URL |
-|-------------|------------------|-----------|
-| SIM | `https://sim.logonvalidation.net/authorize` | `https://sim.logonvalidation.net/token` |
-| LIVE | `https://live.logonvalidation.net/authorize` | `https://live.logonvalidation.net/token` |
+**Limitation:** This is US-market-only by default (Yahoo Finance's screener geography). International most-actives are not available through yfinance's predefined screeners. If international coverage is needed later, custom `EquityQuery` with an `exchange` filter can approximate it per-exchange, but it requires knowing which exchange to query.
 
-Base API URLs:
-- SIM: `https://gateway.saxobank.com/sim/openapi/`
-- LIVE: `https://gateway.saxobank.com/openapi/`
+**Integration point:** Same `screener_service.py` service as above. A separate `GET /api/market/most-active` endpoint route. Cache TTL: 5 minutes (more volatile than sector data; refreshes are cheap).
+
+**What NOT to add:**
+- Do not use Financial Modeling Prep or any third-party paid API. yfinance covers this adequately for personal use.
+- Do not pull volume data from Saxo. Saxo's OpenAPI has no "most active" endpoint — it provides price/volume for individual instruments you already know, not ranked market-wide lists.
 
 ---
 
-## 4. Token Storage and Refresh Patterns
+## 3. Sector / Industry Performance Overview
 
-### 4.1 Token Lifetimes
+### `yfinance.Sector` and `yfinance.Industry` classes
 
-| Token | Lifetime |
-|-------|----------|
-| Access token | ~20 minutes (1200 seconds, `expires_in` field) |
-| Refresh token | ~40 minutes for standard; 24-hour tokens available via developer portal for testing |
-| 24H developer token | 24 hours (manual, for SIM testing only — not for production flow) |
+Available since yfinance 0.2.x, stable in 1.0.0. These wrap Yahoo Finance's sector performance pages.
 
-The short access token lifetime (20 min) means **proactive refresh is mandatory** for any session lasting longer than one Saxo API call sequence.
+**`yfinance.Sector` properties:**
 
-### 4.2 Storage Location
+| Property | Returns | Content |
+|----------|---------|---------|
+| `key` | `str` | Sector identifier (e.g. `'technology'`) |
+| `name` | `str` | Display name |
+| `overview` | `dict` | 1-day change %, YTD change %, market cap total |
+| `industries` | `DataFrame` | Breakdown by sub-industry: symbol, name, price, change, change_percent, market_cap, volume |
+| `top_companies` | `DataFrame` | Largest companies in sector: symbol, name, market_cap |
+| `top_etfs` | `dict` | Sector ETFs (symbol → name) |
 
-**Recommendation: Supabase database table, application-layer encrypted**
+**`yfinance.Industry` additional properties:**
 
-Schema (add to existing Supabase database):
+| Property | Returns | Content |
+|----------|---------|---------|
+| `sector_key` | `str` | Parent sector |
+| `top_performing_companies` | `DataFrame` | Companies ranked by recent performance |
+| `top_growth_companies` | `DataFrame` | Companies ranked by growth metrics |
+
+**Valid sector keys** (confirmed against Yahoo Finance's sector taxonomy, aligned with existing `SECTOR_TO_INDUSTRY` map in `industry_service.py`):
+
+```
+technology, financial-services, healthcare, consumer-cyclical, industrials,
+consumer-defensive, energy, utilities, real-estate, basic-materials,
+communication-services
+```
+
+**Usage pattern:**
+
+```python
+import yfinance as yf
+
+tech = yf.Sector('technology')
+overview = tech.overview          # dict: ytd_change_pct, one_day_change_pct, market_cap
+industries_df = tech.industries   # DataFrame with sub-industry performance
+top_cos = tech.top_companies      # DataFrame with top companies
+```
+
+**Integration point:** New `backend/services/sector_service.py` (thin wrapper around `yf.Sector`). Expose via `GET /api/sectors` (list with 1-day + YTD overview for all sectors) and `GET /api/sectors/{key}` (detailed view with industry breakdown and top companies). Cache TTL: 1 hour (sector aggregates change slowly intraday).
+
+**Key caveat:** `yf.Sector` and `yf.Industry` scrape Yahoo Finance's sector pages. These pages are not part of Yahoo's stable public API. They have been reliable through yfinance 0.2.x and 1.0.x, but could break on Yahoo Finance redesigns. The existing `IndustryService` sector classification logic does not need to change — it maps yfinance sector strings, which remain consistent.
+
+**What NOT to add:**
+- Do not use Saxo for sector performance. Saxo's `/ref/v1/instruments` endpoint supports a `SectorId` filter but: (a) it returns instrument lists, not sector-level aggregated performance; (b) sector field availability in the instrument details response requires market data subscriptions for most exchanges; (c) Saxo's instrument coverage is broker-account-dependent — only instruments the user is set up for are returned, making it unsuitable for broad market discovery.
+- Do not add GICS taxonomy data as a static JSON file — yfinance already provides the mapping dynamically.
+
+---
+
+## 4. Most-Viewed Stocks (User Activity Tracking)
+
+### Approach: Supabase table + server-side increment
+
+This is platform-level popularity data (aggregate across all users), not per-user analytics. The existing Supabase tables track per-user data (portfolio, watchlist, notifications). A new table is needed for aggregate view counts.
+
+**Recommended schema (new Supabase migration `011_create_stock_views.sql`):**
+
 ```sql
-CREATE TABLE saxo_tokens (
-  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  access_token TEXT NOT NULL,        -- encrypted with Fernet
-  refresh_token TEXT NOT NULL,       -- encrypted with Fernet
-  access_token_expires_at TIMESTAMPTZ NOT NULL,
-  refresh_token_expires_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE stock_views (
+  symbol TEXT PRIMARY KEY,
+  view_count BIGINT NOT NULL DEFAULT 0,
+  last_viewed_at TIMESTAMPTZ DEFAULT NOW()
 );
--- Row-level security: users can only see their own row
-ALTER TABLE saxo_tokens ENABLE ROW LEVEL SECURITY;
+
+-- No RLS needed: this table is intentionally aggregate/public
+-- Increment function (avoids race conditions from application-layer read-modify-write)
+CREATE OR REPLACE FUNCTION increment_stock_view(p_symbol TEXT)
+RETURNS VOID AS $$
+BEGIN
+  INSERT INTO stock_views (symbol, view_count, last_viewed_at)
+    VALUES (p_symbol, 1, NOW())
+  ON CONFLICT (symbol)
+    DO UPDATE SET
+      view_count = stock_views.view_count + 1,
+      last_viewed_at = NOW();
+END;
+$$ LANGUAGE plpgsql;
 ```
 
-**Why Supabase, not Redis or in-memory:**
-- Already in the stack. No new infrastructure.
-- Survives backend restarts (Docker Compose restart or deploy).
-- RLS prevents one user accessing another user's tokens.
+**Tracking trigger:** When a user loads a stock detail page, the Next.js page (or its API route) calls `POST /api/stock/{symbol}/view` on the FastAPI backend. The backend calls the Supabase `increment_stock_view` RPC function via `httpx` (the existing Supabase REST client pattern already in `saxo_instrument_mapper.py`).
 
-**Why not browser localStorage or cookies on the frontend:**
-- XSS risk for localStorage.
-- Saxo tokens must stay server-side to prevent exposure.
-- The frontend has no legitimate need to hold Saxo tokens — all Saxo API calls route through FastAPI.
+**Reading the most-viewed list:** `GET /api/market/most-viewed` returns the top N symbols by `view_count`, joined with display names from a short-term cache. The backend queries Supabase directly.
 
-### 4.3 Refresh Token Strategy
+**Why Supabase, not in-memory cache:**
+- Survives backend restarts (Docker Compose restart).
+- The existing `StockCache` (`backend/cache/stock_cache.py`) is per-process in-memory — view counts stored there would be lost on restart and wouldn't consolidate across multiple backend instances.
+- Supabase is already in the stack; no new infrastructure.
 
-**Proactive refresh**: Check token expiry before making any Saxo API call. If the access token expires within 2 minutes, refresh it first.
+**Why no Redis:**
+- Single-user personal app; Redis is over-engineered for one user's view counts.
+- Supabase Postgres with an atomic upsert function handles the concurrency correctly.
 
-```python
-async def get_valid_saxo_token(user_id: str, db) -> str:
-    record = await db.fetch_saxo_token(user_id)
-    if not record:
-        raise SaxoNotConnectedError()
+**Privacy note:** Since this is aggregate data (no user_id stored), there are no RLS concerns and no GDPR complications. View counts reflect platform activity, not individual user behaviour.
 
-    now = datetime.utcnow()
-    expires_at = record.access_token_expires_at
-
-    if expires_at - now < timedelta(minutes=2):
-        # Proactively refresh
-        new_tokens = await refresh_saxo_access_token(record.refresh_token)
-        await db.update_saxo_token(user_id, new_tokens)
-        return new_tokens.access_token
-
-    return decrypt(record.access_token)
-```
-
-**On 401 response**: Attempt one token refresh, retry the request, then surface an error to the frontend if refresh also fails (redirect user to re-authenticate).
-
-**Refresh grant type POST body**:
-```
-POST https://sim.logonvalidation.net/token
-Content-Type: application/x-www-form-urlencoded
-
-grant_type=refresh_token&refresh_token={token}&client_id={key}&client_secret={secret}
-```
-
-**Confidence**: High — pattern confirmed by Saxo API documentation and standard OAuth 2.0 spec.
-
----
-
-## 5. HTTP Client Setup for Saxo API Calls
-
-### 5.1 Client Configuration
-
-```python
-# backend/services/saxo_client.py
-import httpx
-from typing import Optional
-
-SAXO_SIM_BASE = "https://gateway.saxobank.com/sim/openapi"
-SAXO_LIVE_BASE = "https://gateway.saxobank.com/openapi"
-
-def create_saxo_http_client(environment: str = "sim") -> httpx.AsyncClient:
-    base_url = SAXO_SIM_BASE if environment == "sim" else SAXO_LIVE_BASE
-    return httpx.AsyncClient(
-        base_url=base_url,
-        timeout=httpx.Timeout(15.0, connect=5.0),
-        headers={
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        },
-        http2=False,  # Saxo does not advertise HTTP/2 support
-    )
-```
-
-### 5.2 Rate Limit Handling
-
-Saxo rate limits per the developer portal:
-- **10,000,000 requests/day** per application (all users combined)
-- **120 requests/minute** per session per service group
-- **1 order/second** per session (out of scope for v1)
-
-Response headers `X-RateLimit-Remaining` and `X-RateLimit-Reset` are present on rate-limited endpoints. Parse these and back off before hitting zero.
-
-For a single-user personal app with polling (not streaming), 120 req/min is not a concern at normal polling intervals (e.g., every 30 seconds).
-
-### 5.3 Request Pattern
-
-Always inject the bearer token per-request (do not build the token into the client instance, since tokens rotate):
-
-```python
-async def saxo_get(
-    client: httpx.AsyncClient,
-    path: str,
-    token: str,
-    params: Optional[dict] = None,
-) -> dict:
-    response = await client.get(
-        path,
-        params=params,
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    response.raise_for_status()
-    return response.json()
-```
-
----
-
-## 6. Frontend (TypeScript / Next.js) Approach
-
-### 6.1 No Direct Saxo API Calls from Frontend
-
-The Next.js frontend should never call `gateway.saxobank.com` directly. All Saxo data flows through the FastAPI backend, which:
-- Validates the user's Supabase session
-- Retrieves and refreshes the Saxo token
-- Calls Saxo API
-- Returns normalized data to the frontend
-
-This eliminates the need for any Saxo-specific TypeScript library.
-
-### 6.2 Frontend API Layer Pattern
-
-The existing `frontend/src/lib/api.ts` pattern (inferred from project structure) should be extended with Saxo-specific fetch helpers that call FastAPI endpoints:
+**Frontend integration:** The stock detail page sends a fire-and-forget `POST` to the view endpoint. No loading state needed — the user should not wait on view tracking.
 
 ```typescript
-// No new packages needed — use the existing fetch/api wrapper
-export async function getSaxoPortfolio(): Promise<SaxoPortfolio> {
-  const res = await apiClient.get('/saxo/portfolio/positions');
-  return res.data;
-}
-
-export async function getSaxoConnectionStatus(): Promise<{ connected: boolean }> {
-  const res = await apiClient.get('/saxo/auth/status');
-  return res.data;
-}
+// In stock detail page component (fire-and-forget, no await)
+useEffect(() => {
+  fetch(`/api/stock/${symbol}/view`, { method: 'POST' }).catch(() => {});
+}, [symbol]);
 ```
 
-**No additional npm packages are needed for Saxo integration in the frontend.**
-
-### 6.3 OAuth Redirect Handling
-
-The one frontend responsibility in the OAuth flow is initiating it:
-
-```typescript
-// Redirect user to backend to start OAuth flow
-const connectSaxo = () => {
-  window.location.href = `${BACKEND_URL}/saxo/auth/start`;
-};
-```
-
-The backend handles the Saxo redirect URI callback, stores tokens, and redirects back to the frontend dashboard.
-
-**Confidence**: High. This is the standard Backend-for-Frontend (BFF) pattern for OAuth in Next.js + separate API setups.
+**What NOT to add:**
+- Do not use a third-party analytics service (Mixpanel, Amplitude, Plausible). This is a personal-use app.
+- Do not track views in the frontend-only (localStorage or React state) — data would be lost on browser refresh and not shared across devices.
+- Do not add time-windowed most-viewed (e.g. "trending this week") in v1.1 — simple cumulative count is sufficient; time windowing adds Postgres complexity that is not warranted yet.
 
 ---
 
-## 7. What NOT to Use and Why
+## 5. Data Source Comparison: yfinance vs Saxo OpenAPI
 
-| Library / Approach | Reason to Avoid |
-|--------------------|-----------------|
-| `saxo_openapi` PyPI package (hootnot) | Unmaintained since late 2023, synchronous (blocks event loop), no type annotations, no token refresh. Use as reference only. |
-| Direct Saxo calls from Next.js frontend | Exposes tokens to browser; no server-side refresh logic; CORS complications. |
-| Storing tokens in browser localStorage | XSS vulnerable; Saxo tokens grant account read access. |
-| `requests` library for Saxo calls | Synchronous; requires thread pool in async FastAPI; httpx already installed and superior. |
-| Saxo Implicit Flow (OAuth 2.0) | Deprecated in OAuth 2.1; Saxo still supports it but it returns the token in the URL fragment — inherently less secure and unsuitable for server-side apps. |
-| Saxo 24H developer token in production | Only available via manual portal action; cannot be programmatically refreshed; not suitable for automated refresh flows. |
-| Certificate-Based Authentication | Enterprise-only; not available on developer accounts; requires Saxo approval. |
-| Redis for token storage | Introduces a new infrastructure dependency not already in the stack; Supabase already available and persistent. |
-| NextAuth.js for Saxo OAuth | NextAuth is designed for user authentication, not third-party API token management. It would conflict with the existing Supabase auth and is overkill for one API integration. |
+This is the primary decision that governs all discovery features.
+
+### Yahoo Finance via yfinance
+
+| Capability | Support | Notes |
+|------------|---------|-------|
+| Instrument search by keyword | Yes — `yf.Search()` | Already used in `search_service.py` |
+| Sector / industry classification | Yes — `ticker.info['sector']`, `ticker.info['industry']` | Already used; maps to internal IDs |
+| Sector performance aggregates | Yes — `yf.Sector(key).overview` | 1-day %, YTD %, market cap |
+| Sub-industry breakdown | Yes — `yf.Sector(key).industries` | DataFrame with performance metrics |
+| Top companies by sector | Yes — `yf.Sector(key).top_companies` | |
+| Most-active stocks screener | Yes — `yf.screen('most_actives')` | US market; 5M volume min |
+| Custom screener (sector + cap filter) | Yes — `yf.EquityQuery` + `yf.screen()` | Stable since 0.2.x |
+| Historical OHLCV for TA signals | Yes — `ticker.history()` | Core existing use case |
+| Exchange coverage for discovery | Global — 50+ exchanges | NASDAQ, NYSE, LSE, Euronext, etc. |
+| Market data subscription required | No | Free, Yahoo-served |
+| Rate limits (documented) | None documented | Informal scraping; can throttle |
+| Auth required | No | No user credentials needed |
+| API stability | Medium | Unofficial API; has broken in past on Yahoo changes; maintained community |
+
+### Saxo OpenAPI
+
+| Capability | Support | Notes |
+|------------|---------|-------|
+| Instrument search by keyword | Yes — `GET /ref/v1/instruments?Keywords=` | Filters by AssetType, ExchangeId, SectorId |
+| Sector classification field | Partial — `SectorId` filter exists | Sector name not returned in summary response; requires details call |
+| Sector performance aggregates | No | No sector-level performance endpoint exists |
+| Sub-industry breakdown | No | No equivalent to yfinance Sector/Industry class |
+| Most-active stocks | No | No endpoint ranks instruments by trading volume |
+| Custom screener (sector + cap filter) | No | No screener capability; instrument search returns static reference data only |
+| Historical OHLCV | Yes — `GET /chart/v3/charts` | Already used in existing Saxo integration |
+| Portfolio positions + balance | Yes | Core Saxo use case already implemented |
+| Real-time/delayed quotes (held instruments) | Yes — `GET /trade/v1/infoprices/list` | Already used |
+| Exchange coverage | Broker-account-dependent | Only instruments user is subscribed to; not suitable for discovery |
+| Market data subscription required | Yes — for all non-Forex instruments | Per-exchange fees; OHLCV on most exchanges requires paid subscription |
+| Auth required | Yes — OAuth 2.0, 20-min token | Already implemented |
+| Rate limits | 120 req/min per session per service group | Firm enforced limit |
+
+### Verdict
+
+**Use yfinance for all discovery and market trends features.** Use Saxo exclusively for what it already provides: portfolio positions, account balances, and real-time quotes for held instruments.
+
+Saxo has no sector performance aggregates, no screener, and no most-active stocks endpoint. Its instrument reference data is constrained to what the user's account is subscribed to — making it unsuitable for broad market discovery. Additionally, Saxo requires a paid market data subscription for OHLCV data on most equity exchanges, which would break the existing TA signal pipeline if yfinance were replaced.
+
+The PROJECT.md key decision "Replace Yahoo Finance with Saxo as primary data source" recorded as `— Pending` should be re-evaluated. For discovery and TA signal features, Saxo cannot replace yfinance. The correct model is **Saxo for account data, yfinance for market data** — which is what the current implementation already reflects.
 
 ---
 
-## 8. Dependency Summary
+## 6. Dependency Changes Summary
 
-### Backend additions to `requirements.txt`
+### Backend (`backend/requirements.txt`)
 
-```
-authlib>=1.3.0          # OAuth 2.0 PKCE flow + token refresh
-cryptography>=42.0.0    # Fernet encryption for token storage
-tenacity>=8.2.0         # Retry logic for Saxo API calls
-# httpx==0.28.1         # Already present — no change needed
-```
+| Change | Package | Reason |
+|--------|---------|--------|
+| **Bump pin** | `yfinance>=1.0.0` (from `>=1.1.0`) | Pin to stable 1.0+ API for `Screener`, `Sector`, `EquityQuery` classes; `>=1.1.0` is already compatible but pin to 1.0 communicates intent |
+| No change | `pandas>=2.3.2` | `Sector.industries` and screener results return DataFrames; existing version sufficient |
+| No change | `httpx==0.28.1` | Supabase calls for view count tracking use same pattern as `saxo_instrument_mapper.py` |
+| No change | `tenacity>=8.2.0` | Wrap yfinance Screener/Sector calls with retry (same pattern as Saxo calls) |
+| No change | All others | No new Python packages needed |
 
-### Frontend additions to `package.json`
+**Do not add:**
+- Any paid market data API package (FMP, Alpha Vantage, Polygon) — yfinance covers all discovery requirements.
+- `yahooquery` — overlaps with yfinance; adds a second Yahoo Finance dependency to maintain.
+- `yfscreen` — thin wrapper around Yahoo Finance screener; yfinance's own `Screener` class is equivalent and maintained by the same project.
 
-None required. All Saxo integration is backend-side.
+### Frontend (`frontend/package.json`)
 
----
+| Change | Package | Reason |
+|--------|---------|--------|
+| No change | All existing | Market trend views use existing `fetchJSON<T>` API wrapper + `useState`/`useEffect` hooks |
 
-## 9. Confidence Levels Summary
+**Consider (optional, not required for v1.1):**
+- `@tanstack/react-query` 5.x — if the most-viewed tracking, sector performance, and screener pages are built simultaneously and polling complexity increases, TanStack Query provides stale-while-revalidate caching and background refresh without manual `useEffect` timing. However, the existing pattern handles 3–4 new endpoints without issue; defer this until complexity justifies it.
 
-| Recommendation | Confidence | Basis |
-|----------------|------------|-------|
-| httpx as HTTP client | High | Already in stack; official FastAPI recommendation |
-| authlib for OAuth PKCE | High | Actively maintained (1.6.x), httpx integration built-in |
-| Authorization Code Grant (server-side) | High | Saxo developer portal documentation |
-| Saxo token lifetimes (20 min access) | High | Confirmed in multiple Saxo support articles |
-| Supabase for token storage | Medium-High | Follows existing stack; avoids new infrastructure |
-| cryptography/Fernet for encryption | Medium-High | Standard Python pattern for secrets at rest |
-| Saxo SIM base URL | High | Confirmed: `https://gateway.saxobank.com/sim/openapi` |
-| tenacity for retries | Medium | Best practice; not Saxo-specific |
-| Skip saxo_openapi package | High | Maintenance gap directly observable; sync-only design flaw |
-| No frontend Saxo packages needed | High | BFF pattern; all calls proxied through FastAPI |
+**Do not add:**
+- Any charting library for sector performance — existing `lightweight-charts` can render sector comparison lines. If a bar chart is needed for sector % change, a simple SVG/CSS approach or a single Tailwind-styled data table is sufficient without adding a chart library.
 
 ---
 
-*Sources consulted: Saxo Bank Developer Portal (developer.saxo), Saxo OpenAPI Support (openapi.help.saxo), PyPI saxo-openapi, GitHub hootnot/saxo_openapi, authlib documentation, httpx documentation, FastAPI documentation.*
+## 7. New Supabase Migration
+
+One new migration is needed for most-viewed tracking:
+
+- `011_create_stock_views.sql` — `stock_views` table + `increment_stock_view` Postgres function
+
+No schema changes are needed to existing tables. No new indexes beyond the `symbol` primary key.
+
+---
+
+## 8. Cache TTL Recommendations for New Endpoints
+
+| Endpoint | Data source | Recommended TTL | Rationale |
+|----------|-------------|-----------------|-----------|
+| `GET /api/sectors` (list) | `yf.Sector` | 1 hour | Sector aggregates change slowly; Yahoo Finance refreshes these ~hourly |
+| `GET /api/sectors/{key}` | `yf.Sector` | 1 hour | Same as above |
+| `GET /api/market/most-active` | `yf.screen('most_actives')` | 5 minutes | Volume leaders change frequently during market hours |
+| `GET /api/screener` | `yf.screen(custom)` | 15 minutes | Discovery data; users tolerate slight staleness |
+| `GET /api/market/most-viewed` | Supabase query | 2 minutes | Near-real-time is desirable; Supabase query is fast |
+
+These use the existing `StockCache` in-memory TTL mechanism, not a new cache class.
+
+---
+
+*Sources consulted: yfinance documentation (ranaroussi.github.io/yfinance), yfinance GitHub releases and CHANGELOG, yfinance GitHub Discussion #2129 (Screener usage examples), Saxo Bank Developer Portal (developer.saxo), Saxo OpenAPI reference docs (/ref/v1/instruments), Saxo Bank OpenAPI Support (openapi.help.saxo), Supabase documentation (supabase.com/docs).*
