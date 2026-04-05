@@ -42,7 +42,10 @@
       "Bash(git stash:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(grep -h \"requirements:\" .planning/phases/03-frontend-integration/03-*-PLAN.md)"
+      "Bash(grep -h \"requirements:\" .planning/phases/03-frontend-integration/03-*-PLAN.md)",
+      "Bash(git merge:*)",
+      "Bash(git:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit)"
     ]
   }
 }
