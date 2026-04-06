@@ -24,8 +24,8 @@ Requirements for milestone v1.1. Each maps to roadmap phases.
 - [ ] **TRND-01**: User can view most traded stocks ranked by dollar volume (shares x price), filtering out low-liquidity noise
 - [ ] **TRND-02**: User can view sector performance with daily and YTD returns for all 11 GICS sectors
 - [ ] **TRND-03**: User can drill into a sector to see its top-performing stocks
-- [ ] **TRND-04**: User can see which stocks they've viewed most on the platform (personal activity tracking)
-- [ ] **TRND-05**: View tracking uses session-scoped deduplication to prevent polling/tab inflation
+- [x] **TRND-04**: User can see which stocks they've viewed most on the platform (personal activity tracking)
+- [x] **TRND-05**: View tracking uses session-scoped deduplication to prevent polling/tab inflation
 
 ### Discovery UI
 
@@ -63,8 +63,8 @@ Deferred to future milestone. Tracked but not in current roadmap.
 |-------------|-------|--------|
 | DATA-01 | 4 | Pending |
 | DATA-02 | 4 | Pending |
-| TRND-04 | 5, 7, 9 | Pending |
-| TRND-05 | 5, 7 | Pending |
+| TRND-04 | 5, 7, 9 | Complete |
+| TRND-05 | 5, 7 | Complete |
 | TRND-01 | 6, 9 | Pending |
 | TRND-02 | 6, 9 | Pending |
 | TRND-03 | 6, 9 | Pending |
