@@ -56,7 +56,11 @@
       "Skill(gsd:fast)",
       "WebFetch(domain:analysis-stock-investment.vercel.app)",
       "Bash(gh api:*)",
-      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''Keys:'''', list\\(d.keys\\(\\)\\)[:10]\\); print\\(''''Has signals:'''', ''''consolidated_signal'''' in str\\(d\\)\\)\")"
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''Keys:'''', list\\(d.keys\\(\\)\\)[:10]\\); print\\(''''Has signals:'''', ''''consolidated_signal'''' in str\\(d\\)\\)\")",
+      "Bash(echo ' - stock info' curl -s -w n%{http_code} https://analysis-stock-investment.vercel.app/api/stock/AAPL/history)",
+      "Bash(echo ' - history' curl -s -w n%{http_code} https://analysis-stock-investment.vercel.app/api/stock/AAPL/indicators)",
+      "Bash(echo ' - indicators' curl -s -w n%{http_code} https://analysis-stock-investment.vercel.app/api/stock/AAPL/signal)",
+      "Bash(echo ' - signal' curl -s -w n%{http_code} https://analysis-stock-investment.vercel.app/api/search?q=apple)"
     ]
   }
 }
