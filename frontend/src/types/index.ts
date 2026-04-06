@@ -59,6 +59,8 @@ export interface Stock {
   pe_ratio: number | null;
   dividend_yield: number | null;
   eps: number | null;
+  volume?: number | null;
+  avg_volume?: number | null;
   week_52_high: number;
   week_52_low: number;
   sector: string | null;
