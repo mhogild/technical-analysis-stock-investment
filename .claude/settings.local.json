@@ -52,7 +52,8 @@
       "WebFetch(domain:pypi.org)",
       "WebFetch(domain:developer.saxo)",
       "WebFetch(domain:ranaroussi.github.io)",
-      "WebFetch(domain:openapi.help.saxo)"
+      "WebFetch(domain:openapi.help.saxo)",
+      "Skill(gsd:fast)"
     ]
   }
 }
