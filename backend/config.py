@@ -26,6 +26,10 @@ CACHE_TTL_PRICE = 4 * 60 * 60       # 4 hours for price data
 CACHE_TTL_INFO = 24 * 60 * 60       # 24 hours for company info
 CACHE_TTL_INDICATORS = 4 * 60 * 60  # 4 hours for computed indicators
 
+# Market Trends cache TTLs (seconds)
+CACHE_TTL_MARKET_TRENDS_TRADED = 5 * 60    # 5 minutes for most-traded (high churn)
+CACHE_TTL_MARKET_TRENDS_SECTORS = 60 * 60  # 1 hour for sector performance (stable)
+
 # API Settings
 MAX_SEARCH_RESULTS = 20
 SMALL_CAP_THRESHOLD = 10_000_000_000  # $10B — below this, show reliability warning
