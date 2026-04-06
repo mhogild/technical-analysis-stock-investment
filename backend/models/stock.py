@@ -16,6 +16,8 @@ class StockInfo(BaseModel):
     pe_ratio: Optional[float] = None
     dividend_yield: Optional[float] = None
     eps: Optional[float] = None
+    volume: Optional[int] = None
+    avg_volume: Optional[int] = None
     week_52_high: float
     week_52_low: float
     sector: Optional[str] = None
