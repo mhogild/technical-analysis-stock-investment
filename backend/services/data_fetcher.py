@@ -49,6 +49,8 @@ class DataFetcher:
             pe_ratio=info.get("trailingPE"),
             dividend_yield=info.get("dividendYield"),
             eps=info.get("trailingEps"),
+            volume=info.get("volume"),
+            avg_volume=info.get("averageVolume"),
             week_52_high=info.get("fiftyTwoWeekHigh", 0),
             week_52_low=info.get("fiftyTwoWeekLow", 0),
             sector=info.get("sector"),
