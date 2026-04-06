@@ -54,7 +54,8 @@
       "WebFetch(domain:ranaroussi.github.io)",
       "WebFetch(domain:openapi.help.saxo)",
       "Skill(gsd:fast)",
-      "WebFetch(domain:analysis-stock-investment.vercel.app)"
+      "WebFetch(domain:analysis-stock-investment.vercel.app)",
+      "Bash(gh api:*)"
     ]
   }
 }
