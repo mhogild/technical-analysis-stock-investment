@@ -3,7 +3,8 @@
  * Provides stock info, price history, and financial data.
  */
 
-import yahooFinance from "yahoo-finance2";
+import YahooFinance from "yahoo-finance2";
+const yahooFinance = new YahooFinance();
 import { stockCache } from "./stockCache";
 import { CACHE_TTL_PRICE, CACHE_TTL_INFO } from "../config";
 import type { Stock, PriceDataPoint } from "@/types";

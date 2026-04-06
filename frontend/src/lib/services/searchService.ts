@@ -3,7 +3,8 @@
  * Uses yahoo-finance2 for search functionality.
  */
 
-import yahooFinance from "yahoo-finance2";
+import YahooFinance from "yahoo-finance2";
+const yahooFinance = new YahooFinance();
 import { EXCHANGE_SUFFIXES, MAX_SEARCH_RESULTS } from "../config";
 import type { SearchResult } from "@/types";
 
