@@ -55,7 +55,8 @@
       "WebFetch(domain:openapi.help.saxo)",
       "Skill(gsd:fast)",
       "WebFetch(domain:analysis-stock-investment.vercel.app)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''Keys:'''', list\\(d.keys\\(\\)\\)[:10]\\); print\\(''''Has signals:'''', ''''consolidated_signal'''' in str\\(d\\)\\)\")"
     ]
   }
 }
