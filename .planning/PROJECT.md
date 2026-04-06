@@ -39,10 +39,10 @@ The user can discover, analyze, and monitor stocks with evidence-based technical
 - ✓ Display Saxo account balance and performance metrics — v1.0 Phase 2
 - ✓ Merge Saxo positions with existing manual portfolio view — v1.0 Phase 3
 - ✓ Apply existing technical analysis signals to Saxo-held instruments — v1.0 Phase 3
+- ✓ Evaluate Saxo API vs Yahoo Finance as primary data source — v1.1 Phase 4
 
 ### Active
 
-- [ ] Evaluate Saxo API vs Yahoo Finance as primary data source
 - [ ] Stock screener with sector/industry/market-cap browsing
 - [ ] Most traded stocks view (volume/transaction activity)
 - [ ] Sector/industry performance overview
@@ -56,6 +56,21 @@ The user can discover, analyze, and monitor stocks with evidence-based technical
 - Real-time streaming via WebSocket — start with polling/on-demand, add streaming later
 - Saxo SIM/demo account management — user manages their own developer account
 - Sync watchlist with Saxo instruments — deferred from v1.0, lower priority than discovery features
+
+## Data Source Assignment (v1.1)
+
+Decided in Phase 4 based on v1.1 research. See `.planning/phases/04-data-source-decision/04-RESEARCH.md` for full capability comparison tables.
+
+| Feature | Data Source | Key API |
+|---------|------------|---------|
+| Stock screener (sector/industry) | yfinance | `yf.EquityQuery`, `yf.screen()` |
+| Most-traded stocks | yfinance | `yf.screen('most_actives')` |
+| Sector performance (daily + YTD) | yfinance | `yf.Sector(key).overview` |
+| Sector drill-down (top companies) | yfinance | `yf.Industry(key).top_performing_companies` |
+| Most-viewed stocks | Supabase | `stock_view_counts` table (internal) |
+| Portfolio positions & balances | Saxo OpenAPI | `/port/v1/positions`, `/port/v1/balances` |
+| Real-time quotes (held instruments) | Saxo OpenAPI | `/trade/v1/infoprices` |
+| Historical OHLCV for TA signals | yfinance (status quo) | `ticker.history()` |
 
 ## Context
 
@@ -95,7 +110,7 @@ The user can discover, analyze, and monitor stocks with evidence-based technical
 
 This document evolves at phase transitions and milestone boundaries.
 
-Last updated: 2026-04-05 — Milestone v1.1 started (Stock Discovery & Market Trends)
+Last updated: 2026-04-05 — Phase 4 complete: data source decision closed (yfinance for discovery, Saxo for portfolio)
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -111,4 +126,4 @@ Last updated: 2026-04-05 — Milestone v1.1 started (Stock Discovery & Market Tr
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-29 after Phase 1 completion — auth infrastructure built, pending human verification with Saxo SIM credentials*
+*Last updated: 2026-04-05 — Phase 4: data source decision recorded*
