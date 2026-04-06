@@ -179,7 +179,7 @@ export default function Home() {
             </div>
             <div>
               <h3 className="font-semibold text-white group-hover:text-cyan-400 transition-colors">Watchlist</h3>
-              <p className="mt-1 text-sm text-slate-400">Monitor stocks you're interested in — get notified when signals change and track multiple tickers at a glance.</p>
+              <p className="mt-1 text-sm text-slate-400">Monitor stocks you&apos;re interested in — get notified when signals change and track multiple tickers at a glance.</p>
             </div>
           </Link>
         </div>
