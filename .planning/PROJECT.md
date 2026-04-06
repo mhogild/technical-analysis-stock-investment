@@ -110,7 +110,7 @@ Decided in Phase 4 based on v1.1 research. See `.planning/phases/04-data-source-
 
 This document evolves at phase transitions and milestone boundaries.
 
-Last updated: 2026-04-05 — Phase 4 complete: data source decision closed (yfinance for discovery, Saxo for portfolio)
+Last updated: 2026-04-06 — Phase 5 complete: backend schema, model, and config foundations delivered (volume fields, stock_view_counts table, market-trends TTLs)
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -126,4 +126,4 @@ Last updated: 2026-04-05 — Phase 4 complete: data source decision closed (yfin
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-05 — Phase 4: data source decision recorded*
+*Last updated: 2026-04-06 — Phase 5: backend foundations delivered*
