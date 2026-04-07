@@ -63,7 +63,8 @@
       "Bash(echo ' - signal' curl -s -w n%{http_code} https://analysis-stock-investment.vercel.app/api/search?q=apple)",
       "Bash(cat /c/Users/magnu/Documents/GitHub/technical-analysis-stock-investment/frontend/.env*)",
       "Bash(npm list:*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "WebFetch(domain:localhost)"
     ]
   }
 }
