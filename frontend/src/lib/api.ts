@@ -13,10 +13,8 @@ import type {
   SaxoPerformance,
 } from "@/types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-
 async function fetchJSON<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`);
+  const res = await fetch(path);
   if (!res.ok) {
     const detail = await res.text().catch(() => res.statusText);
     throw new Error(`API error ${res.status}: ${detail}`);
@@ -31,7 +29,7 @@ async function fetchJSONAuthenticated<T>(
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(path, {
     ...options,
     headers: {
       ...options?.headers,
