@@ -60,7 +60,10 @@
       "Bash(echo ' - stock info' curl -s -w n%{http_code} https://analysis-stock-investment.vercel.app/api/stock/AAPL/history)",
       "Bash(echo ' - history' curl -s -w n%{http_code} https://analysis-stock-investment.vercel.app/api/stock/AAPL/indicators)",
       "Bash(echo ' - indicators' curl -s -w n%{http_code} https://analysis-stock-investment.vercel.app/api/stock/AAPL/signal)",
-      "Bash(echo ' - signal' curl -s -w n%{http_code} https://analysis-stock-investment.vercel.app/api/search?q=apple)"
+      "Bash(echo ' - signal' curl -s -w n%{http_code} https://analysis-stock-investment.vercel.app/api/search?q=apple)",
+      "Bash(cat /c/Users/magnu/Documents/GitHub/technical-analysis-stock-investment/frontend/.env*)",
+      "Bash(npm list:*)",
+      "Bash(xargs grep:*)"
     ]
   }
 }
